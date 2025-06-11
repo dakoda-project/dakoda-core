@@ -68,6 +68,11 @@ Install requirements using:
 ```sh
 pip install pandas polars lxml ipywidgets
 ```
+## Preview of Notebooks with Results
+
+You can view the executed notebooks with results here:
+- [Task 1 - Corpus Processing (with results)](notebooks/Results/Task-1.ipynb)
+
 
 
 # Interactive Corpus Browser (Corpus_Browser.ipynb)
@@ -91,6 +96,11 @@ This notebook provides an interactive interface to browse and visualize corpus m
 ```sh
 pip install pandas polars ipywidgets plotly itables
 ```
+## Preview of Notebooks with Results
+
+You can view the executed notebooks with results here:
+- [Task 2 - Interactive Corpus Browser (with results)](notebooks/Results/Task-2.ipynb)
+
 
 
 # Corpus Comparison (corpus_comparison.ipynb)
@@ -115,7 +125,12 @@ This notebook compares the two corpora, CDLK and KLP1, based on the preprocessed
 
 This comparison helps identify differences in corpus size and structure, useful for further linguistic analysis or preprocessing decisions.
 
+## Preview of Notebooks with Results
 
+You can view the executed notebooks with results here:
+- [Task 3 - Corpus Comparison (with results)](notebooks/Results/Task-3.ipynb)
+
+  
 # Notes
 - Paths inside notebooks use dummy placeholders — update these with your actual data paths before running.
 - Notebooks are designed to be simple and clear for non-technical users.
