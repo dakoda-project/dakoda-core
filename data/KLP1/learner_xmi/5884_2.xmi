@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/XMI" xmlns:cas="http:///uima/cas.ecore" xmlns:type="http:///de/tudarmstadt/ukp/dkpro/core/api/segmentation/type.ecore" xmlns:pos="http:///de/tudarmstadt/ukp/dkpro/core/api/lexmorph/type/pos.ecore" xmlns:UniversalDependencies="http:///custom/UniversalDependencies.ecore" xmlns:syntaxdot="http:///custom/syntaxdot.ecore" xmlns:syntax="http:///org/dakoda/syntax.ecore" xmlns:dakoda="http:///org/dakoda.ecore" xmi:version="2.0">
+  <cas:NULL xmi:id="0"/>
+  <type:Sentence xmi:id="3" begin="0" end="12" sofa="2"/>
+  <type:Sentence xmi:id="4" begin="13" end="18" sofa="2"/>
+  <pos:POS xmi:id="5" PosValue="ADJA" begin="0" end="5" sofa="2"/>
+  <pos:POS xmi:id="6" PosValue="NE" begin="6" end="10" sofa="2"/>
+  <pos:POS xmi:id="7" PosValue="$," begin="11" end="12" sofa="2"/>
+  <pos:POS xmi:id="8" PosValue="$(" begin="13" end="18" sofa="2"/>
+  <UniversalDependencies:POS xmi:id="9" PosValue="ADJ" begin="0" end="5" sofa="2"/>
+  <UniversalDependencies:POS xmi:id="10" PosValue="PROPN" begin="6" end="10" sofa="2"/>
+  <UniversalDependencies:POS xmi:id="11" PosValue="PUNCT" begin="11" end="12" sofa="2"/>
+  <UniversalDependencies:POS xmi:id="12" PosValue="PUNCT" begin="13" end="18" sofa="2"/>
+  <type:Lemma xmi:id="13" value="lieb" begin="0" end="5" sofa="2"/>
+  <type:Lemma xmi:id="14" value="Hans" begin="6" end="10" sofa="2"/>
+  <type:Lemma xmi:id="15" value="," begin="11" end="12" sofa="2"/>
+  <type:Lemma xmi:id="16" value="....." begin="13" end="18" sofa="2"/>
+  <syntaxdot:topofield xmi:id="17" FieldValue="null" begin="0" end="5" sofa="2"/>
+  <syntaxdot:topofield xmi:id="18" FieldValue="null" begin="6" end="10" sofa="2"/>
+  <syntaxdot:topofield xmi:id="19" FieldValue="null" begin="11" end="12" sofa="2"/>
+  <syntaxdot:topofield xmi:id="20" FieldValue="null" begin="13" end="18" sofa="2"/>
+  <syntax:UDependency xmi:id="21" Governor="26" Dependent="25" DependencyType="amod" flavor="basic" sofa="2"/>
+  <syntax:UDependency xmi:id="22" Governor="26" Dependent="26" DependencyType="root" flavor="basic" sofa="2"/>
+  <syntax:UDependency xmi:id="23" Governor="26" Dependent="27" DependencyType="punct" flavor="basic" sofa="2"/>
+  <syntax:UDependency xmi:id="24" Governor="28" Dependent="28" DependencyType="root" flavor="basic" sofa="2"/>
+  <type:Token xmi:id="25" id="1" syntacticFunction="amod" begin="0" end="5" sofa="2"/>
+  <type:Token xmi:id="26" id="2" syntacticFunction="root" begin="6" end="10" sofa="2"/>
+  <type:Token xmi:id="27" id="3" syntacticFunction="punct" begin="11" end="12" sofa="2"/>
+  <type:Token xmi:id="28" id="1" syntacticFunction="root" begin="13" end="18" sofa="2"/>
+  <type:Sentence xmi:id="30" begin="0" end="12" sofa="29"/>
+  <type:Sentence xmi:id="31" begin="13" end="18" sofa="29"/>
+  <pos:POS xmi:id="32" PosValue="ADJA" begin="0" end="5" sofa="29"/>
+  <pos:POS xmi:id="33" PosValue="NE" begin="6" end="10" sofa="29"/>
+  <pos:POS xmi:id="34" PosValue="$," begin="11" end="12" sofa="29"/>
+  <pos:POS xmi:id="35" PosValue="$(" begin="13" end="18" sofa="29"/>
+  <UniversalDependencies:POS xmi:id="36" PosValue="ADJ" begin="0" end="5" sofa="29"/>
+  <UniversalDependencies:POS xmi:id="37" PosValue="PROPN" begin="6" end="10" sofa="29"/>
+  <UniversalDependencies:POS xmi:id="38" PosValue="PUNCT" begin="11" end="12" sofa="29"/>
+  <UniversalDependencies:POS xmi:id="39" PosValue="PUNCT" begin="13" end="18" sofa="29"/>
+  <type:Lemma xmi:id="40" value="lieb" begin="0" end="5" sofa="29"/>
+  <type:Lemma xmi:id="41" value="Hans" begin="6" end="10" sofa="29"/>
+  <type:Lemma xmi:id="42" value="," begin="11" end="12" sofa="29"/>
+  <type:Lemma xmi:id="43" value="....." begin="13" end="18" sofa="29"/>
+  <syntaxdot:topofield xmi:id="44" FieldValue="null" begin="0" end="5" sofa="29"/>
+  <syntaxdot:topofield xmi:id="45" FieldValue="null" begin="6" end="10" sofa="29"/>
+  <syntaxdot:topofield xmi:id="46" FieldValue="null" begin="11" end="12" sofa="29"/>
+  <syntaxdot:topofield xmi:id="47" FieldValue="null" begin="13" end="18" sofa="29"/>
+  <syntax:UDependency xmi:id="48" Governor="53" Dependent="52" DependencyType="amod" flavor="basic" sofa="29"/>
+  <syntax:UDependency xmi:id="49" Governor="53" Dependent="53" DependencyType="root" flavor="basic" sofa="29"/>
+  <syntax:UDependency xmi:id="50" Governor="53" Dependent="54" DependencyType="punct" flavor="basic" sofa="29"/>
+  <syntax:UDependency xmi:id="51" Governor="55" Dependent="55" DependencyType="root" flavor="basic" sofa="29"/>
+  <type:Token xmi:id="52" id="1" syntacticFunction="amod" begin="0" end="5" sofa="29"/>
+  <type:Token xmi:id="53" id="2" syntacticFunction="root" begin="6" end="10" sofa="29"/>
+  <type:Token xmi:id="54" id="3" syntacticFunction="punct" begin="11" end="12" sofa="29"/>
+  <type:Token xmi:id="55" id="1" syntacticFunction="root" begin="13" end="18" sofa="29"/>
+  <type:Sentence xmi:id="57" begin="0" end="13" sofa="56"/>
+  <pos:POS xmi:id="58" PosValue="ADJA" begin="0" end="6" sofa="56"/>
+  <pos:POS xmi:id="59" PosValue="NE" begin="7" end="11" sofa="56"/>
+  <pos:POS xmi:id="60" PosValue="$," begin="12" end="13" sofa="56"/>
+  <UniversalDependencies:POS xmi:id="61" PosValue="ADJ" begin="0" end="6" sofa="56"/>
+  <UniversalDependencies:POS xmi:id="62" PosValue="PROPN" begin="7" end="11" sofa="56"/>
+  <UniversalDependencies:POS xmi:id="63" PosValue="PUNCT" begin="12" end="13" sofa="56"/>
+  <type:Lemma xmi:id="64" value="lieb" begin="0" end="6" sofa="56"/>
+  <type:Lemma xmi:id="65" value="Hans" begin="7" end="11" sofa="56"/>
+  <type:Lemma xmi:id="66" value="," begin="12" end="13" sofa="56"/>
+  <syntaxdot:topofield xmi:id="67" FieldValue="null" begin="0" end="6" sofa="56"/>
+  <syntaxdot:topofield xmi:id="68" FieldValue="null" begin="7" end="11" sofa="56"/>
+  <syntaxdot:topofield xmi:id="69" FieldValue="null" begin="12" end="13" sofa="56"/>
+  <syntax:UDependency xmi:id="70" Governor="77" Dependent="76" DependencyType="amod" flavor="basic" sofa="56"/>
+  <syntax:UDependency xmi:id="71" Governor="77" Dependent="77" DependencyType="root" flavor="basic" sofa="56"/>
+  <syntax:UDependency xmi:id="72" Governor="77" Dependent="78" DependencyType="punct" flavor="basic" sofa="56"/>
+  <dakoda:crosslayermap xmi:id="73" reflayer="ctok" index="1_1" nth="1" begin="0" end="6" sofa="56"/>
+  <dakoda:crosslayermap xmi:id="74" reflayer="ctok" index="1_2" nth="2" begin="7" end="11" sofa="56"/>
+  <dakoda:crosslayermap xmi:id="75" reflayer="ctok" index="1_3" nth="3" begin="12" end="13" sofa="56"/>
+  <type:Token xmi:id="76" id="1" syntacticFunction="amod" begin="0" end="6" sofa="56"/>
+  <type:Token xmi:id="77" id="2" syntacticFunction="root" begin="7" end="11" sofa="56"/>
+  <type:Token xmi:id="78" id="3" syntacticFunction="punct" begin="12" end="13" sofa="56"/>
+  <type:Sentence xmi:id="80" begin="0" end="13" sofa="79"/>
+  <type:Sentence xmi:id="81" begin="14" end="19" sofa="79"/>
+  <pos:POS xmi:id="82" PosValue="ADJA" begin="0" end="6" sofa="79"/>
+  <pos:POS xmi:id="83" PosValue="NE" begin="7" end="11" sofa="79"/>
+  <pos:POS xmi:id="84" PosValue="$," begin="12" end="13" sofa="79"/>
+  <pos:POS xmi:id="85" PosValue="$(" begin="14" end="19" sofa="79"/>
+  <UniversalDependencies:POS xmi:id="86" PosValue="ADJ" begin="0" end="6" sofa="79"/>
+  <UniversalDependencies:POS xmi:id="87" PosValue="PROPN" begin="7" end="11" sofa="79"/>
+  <UniversalDependencies:POS xmi:id="88" PosValue="PUNCT" begin="12" end="13" sofa="79"/>
+  <UniversalDependencies:POS xmi:id="89" PosValue="PUNCT" begin="14" end="19" sofa="79"/>
+  <type:Lemma xmi:id="90" value="lieb" begin="0" end="6" sofa="79"/>
+  <type:Lemma xmi:id="91" value="Hans" begin="7" end="11" sofa="79"/>
+  <type:Lemma xmi:id="92" value="," begin="12" end="13" sofa="79"/>
+  <type:Lemma xmi:id="93" value="....." begin="14" end="19" sofa="79"/>
+  <syntaxdot:topofield xmi:id="94" FieldValue="null" begin="0" end="6" sofa="79"/>
+  <syntaxdot:topofield xmi:id="95" FieldValue="null" begin="7" end="11" sofa="79"/>
+  <syntaxdot:topofield xmi:id="96" FieldValue="null" begin="12" end="13" sofa="79"/>
+  <syntaxdot:topofield xmi:id="97" FieldValue="null" begin="14" end="19" sofa="79"/>
+  <syntax:UDependency xmi:id="98" Governor="107" Dependent="106" DependencyType="amod" flavor="basic" sofa="79"/>
+  <syntax:UDependency xmi:id="99" Governor="107" Dependent="107" DependencyType="root" flavor="basic" sofa="79"/>
+  <syntax:UDependency xmi:id="100" Governor="107" Dependent="108" DependencyType="punct" flavor="basic" sofa="79"/>
+  <syntax:UDependency xmi:id="101" Governor="109" Dependent="109" DependencyType="root" flavor="basic" sofa="79"/>
+  <dakoda:crosslayermap xmi:id="102" reflayer="ctok" index="1_1" nth="1" begin="0" end="6" sofa="79"/>
+  <dakoda:crosslayermap xmi:id="103" reflayer="ctok" index="1_2" nth="2" begin="7" end="11" sofa="79"/>
+  <dakoda:crosslayermap xmi:id="104" reflayer="ctok" index="1_3" nth="3" begin="12" end="13" sofa="79"/>
+  <dakoda:crosslayermap xmi:id="105" reflayer="ctok" index="2_1" nth="1" begin="14" end="19" sofa="79"/>
+  <type:Token xmi:id="106" id="1" syntacticFunction="amod" begin="0" end="6" sofa="79"/>
+  <type:Token xmi:id="107" id="2" syntacticFunction="root" begin="7" end="11" sofa="79"/>
+  <type:Token xmi:id="108" id="3" syntacticFunction="punct" begin="12" end="13" sofa="79"/>
+  <type:Token xmi:id="109" id="1" syntacticFunction="root" begin="14" end="19" sofa="79"/>
+  <type:Sentence xmi:id="111" begin="0" end="13" sofa="110"/>
+  <type:Sentence xmi:id="112" begin="14" end="19" sofa="110"/>
+  <pos:POS xmi:id="113" PosValue="ADJA" begin="0" end="6" sofa="110"/>
+  <pos:POS xmi:id="114" PosValue="NE" begin="7" end="11" sofa="110"/>
+  <pos:POS xmi:id="115" PosValue="$." begin="12" end="13" sofa="110"/>
+  <pos:POS xmi:id="116" PosValue="$(" begin="14" end="19" sofa="110"/>
+  <UniversalDependencies:POS xmi:id="117" PosValue="ADJ" begin="0" end="6" sofa="110"/>
+  <UniversalDependencies:POS xmi:id="118" PosValue="PROPN" begin="7" end="11" sofa="110"/>
+  <UniversalDependencies:POS xmi:id="119" PosValue="PUNCT" begin="12" end="13" sofa="110"/>
+  <UniversalDependencies:POS xmi:id="120" PosValue="PUNCT" begin="14" end="19" sofa="110"/>
+  <type:Lemma xmi:id="121" value="lieb" begin="0" end="6" sofa="110"/>
+  <type:Lemma xmi:id="122" value="Hans" begin="7" end="11" sofa="110"/>
+  <type:Lemma xmi:id="123" value="!" begin="12" end="13" sofa="110"/>
+  <type:Lemma xmi:id="124" value="....." begin="14" end="19" sofa="110"/>
+  <syntaxdot:topofield xmi:id="125" FieldValue="null" begin="0" end="6" sofa="110"/>
+  <syntaxdot:topofield xmi:id="126" FieldValue="null" begin="7" end="11" sofa="110"/>
+  <syntaxdot:topofield xmi:id="127" FieldValue="null" begin="12" end="13" sofa="110"/>
+  <syntaxdot:topofield xmi:id="128" FieldValue="null" begin="14" end="19" sofa="110"/>
+  <syntax:UDependency xmi:id="129" Governor="138" Dependent="137" DependencyType="amod" flavor="basic" sofa="110"/>
+  <syntax:UDependency xmi:id="130" Governor="138" Dependent="138" DependencyType="root" flavor="basic" sofa="110"/>
+  <syntax:UDependency xmi:id="131" Governor="138" Dependent="139" DependencyType="punct" flavor="basic" sofa="110"/>
+  <syntax:UDependency xmi:id="132" Governor="140" Dependent="140" DependencyType="root" flavor="basic" sofa="110"/>
+  <dakoda:crosslayermap xmi:id="133" reflayer="ctok" index="1_1" nth="1" begin="0" end="6" sofa="110"/>
+  <dakoda:crosslayermap xmi:id="134" reflayer="ctok" index="1_2" nth="2" begin="7" end="11" sofa="110"/>
+  <dakoda:crosslayermap xmi:id="135" reflayer="ctok" index="1_3" nth="3" begin="12" end="13" sofa="110"/>
+  <dakoda:crosslayermap xmi:id="136" reflayer="ctok" index="2_1" nth="1" begin="14" end="19" sofa="110"/>
+  <type:Token xmi:id="137" id="1" syntacticFunction="amod" begin="0" end="6" sofa="110"/>
+  <type:Token xmi:id="138" id="2" syntacticFunction="root" begin="7" end="11" sofa="110"/>
+  <type:Token xmi:id="139" id="3" syntacticFunction="punct" begin="12" end="13" sofa="110"/>
+  <type:Token xmi:id="140" id="1" syntacticFunction="root" begin="14" end="19" sofa="110"/>
+  <type:Sentence xmi:id="142" begin="0" end="12" sofa="141"/>
+  <type:Sentence xmi:id="143" begin="13" end="18" sofa="141"/>
+  <pos:POS xmi:id="144" PosValue="NN" begin="0" end="5" sofa="141"/>
+  <pos:POS xmi:id="145" PosValue="NE" begin="6" end="10" sofa="141"/>
+  <pos:POS xmi:id="146" PosValue="$," begin="11" end="12" sofa="141"/>
+  <pos:POS xmi:id="147" PosValue="$(" begin="13" end="18" sofa="141"/>
+  <UniversalDependencies:POS xmi:id="148" PosValue="NOUN" begin="0" end="5" sofa="141"/>
+  <UniversalDependencies:POS xmi:id="149" PosValue="PROPN" begin="6" end="10" sofa="141"/>
+  <UniversalDependencies:POS xmi:id="150" PosValue="PUNCT" begin="11" end="12" sofa="141"/>
+  <UniversalDependencies:POS xmi:id="151" PosValue="PUNCT" begin="13" end="18" sofa="141"/>
+  <type:Lemma xmi:id="152" value="Liebe" begin="0" end="5" sofa="141"/>
+  <type:Lemma xmi:id="153" value="Hans" begin="6" end="10" sofa="141"/>
+  <type:Lemma xmi:id="154" value="--" begin="11" end="12" sofa="141"/>
+  <type:Lemma xmi:id="155" value="....." begin="13" end="18" sofa="141"/>
+  <syntax:TigerDependency xmi:id="156" Governor="160" Dependent="160" DependencyType="ROOT" flavor="basic" sofa="141"/>
+  <syntax:TigerDependency xmi:id="157" Governor="160" Dependent="161" DependencyType="nk" flavor="basic" sofa="141"/>
+  <syntax:TigerDependency xmi:id="158" Governor="161" Dependent="162" DependencyType="punct" flavor="basic" sofa="141"/>
+  <syntax:TigerDependency xmi:id="159" Governor="163" Dependent="163" DependencyType="ROOT" flavor="basic" sofa="141"/>
+  <type:Token xmi:id="160" id="1" syntacticFunction="ROOT" begin="0" end="5" sofa="141"/>
+  <type:Token xmi:id="161" id="2" syntacticFunction="nk" begin="6" end="10" sofa="141"/>
+  <type:Token xmi:id="162" id="3" syntacticFunction="punct" begin="11" end="12" sofa="141"/>
+  <type:Token xmi:id="163" id="1" syntacticFunction="ROOT" begin="13" end="18" sofa="141"/>
+  <type:Sentence xmi:id="165" begin="0" end="12" sofa="164"/>
+  <type:Sentence xmi:id="166" begin="13" end="18" sofa="164"/>
+  <pos:POS xmi:id="167" PosValue="NN" begin="0" end="5" sofa="164"/>
+  <pos:POS xmi:id="168" PosValue="NE" begin="6" end="10" sofa="164"/>
+  <pos:POS xmi:id="169" PosValue="$," begin="11" end="12" sofa="164"/>
+  <pos:POS xmi:id="170" PosValue="$(" begin="13" end="18" sofa="164"/>
+  <UniversalDependencies:POS xmi:id="171" PosValue="NOUN" begin="0" end="5" sofa="164"/>
+  <UniversalDependencies:POS xmi:id="172" PosValue="PROPN" begin="6" end="10" sofa="164"/>
+  <UniversalDependencies:POS xmi:id="173" PosValue="PUNCT" begin="11" end="12" sofa="164"/>
+  <UniversalDependencies:POS xmi:id="174" PosValue="PUNCT" begin="13" end="18" sofa="164"/>
+  <type:Lemma xmi:id="175" value="Liebe" begin="0" end="5" sofa="164"/>
+  <type:Lemma xmi:id="176" value="Hans" begin="6" end="10" sofa="164"/>
+  <type:Lemma xmi:id="177" value="--" begin="11" end="12" sofa="164"/>
+  <type:Lemma xmi:id="178" value="....." begin="13" end="18" sofa="164"/>
+  <syntax:TigerDependency xmi:id="179" Governor="183" Dependent="183" DependencyType="ROOT" flavor="basic" sofa="164"/>
+  <syntax:TigerDependency xmi:id="180" Governor="183" Dependent="184" DependencyType="nk" flavor="basic" sofa="164"/>
+  <syntax:TigerDependency xmi:id="181" Governor="184" Dependent="185" DependencyType="punct" flavor="basic" sofa="164"/>
+  <syntax:TigerDependency xmi:id="182" Governor="186" Dependent="186" DependencyType="ROOT" flavor="basic" sofa="164"/>
+  <type:Token xmi:id="183" id="1" syntacticFunction="ROOT" begin="0" end="5" sofa="164"/>
+  <type:Token xmi:id="184" id="2" syntacticFunction="nk" begin="6" end="10" sofa="164"/>
+  <type:Token xmi:id="185" id="3" syntacticFunction="punct" begin="11" end="12" sofa="164"/>
+  <type:Token xmi:id="186" id="1" syntacticFunction="ROOT" begin="13" end="18" sofa="164"/>
+  <type:Sentence xmi:id="188" begin="0" end="13" sofa="187"/>
+  <pos:POS xmi:id="189" PosValue="ADJA" begin="0" end="6" sofa="187"/>
+  <pos:POS xmi:id="190" PosValue="NE" begin="7" end="11" sofa="187"/>
+  <pos:POS xmi:id="191" PosValue="$," begin="12" end="13" sofa="187"/>
+  <UniversalDependencies:POS xmi:id="192" PosValue="ADJ" begin="0" end="6" sofa="187"/>
+  <UniversalDependencies:POS xmi:id="193" PosValue="PROPN" begin="7" end="11" sofa="187"/>
+  <UniversalDependencies:POS xmi:id="194" PosValue="PUNCT" begin="12" end="13" sofa="187"/>
+  <type:Lemma xmi:id="195" value="lieb" begin="0" end="6" sofa="187"/>
+  <type:Lemma xmi:id="196" value="Hans" begin="7" end="11" sofa="187"/>
+  <type:Lemma xmi:id="197" value="--" begin="12" end="13" sofa="187"/>
+  <syntax:TigerDependency xmi:id="198" Governor="205" Dependent="204" DependencyType="nk" flavor="basic" sofa="187"/>
+  <syntax:TigerDependency xmi:id="199" Governor="205" Dependent="205" DependencyType="ROOT" flavor="basic" sofa="187"/>
+  <syntax:TigerDependency xmi:id="200" Governor="205" Dependent="206" DependencyType="punct" flavor="basic" sofa="187"/>
+  <dakoda:crosslayermap xmi:id="201" reflayer="ctok" index="1_1" nth="1" begin="0" end="6" sofa="187"/>
+  <dakoda:crosslayermap xmi:id="202" reflayer="ctok" index="1_2" nth="2" begin="7" end="11" sofa="187"/>
+  <dakoda:crosslayermap xmi:id="203" reflayer="ctok" index="1_3" nth="3" begin="12" end="13" sofa="187"/>
+  <type:Token xmi:id="204" id="1" syntacticFunction="nk" begin="0" end="6" sofa="187"/>
+  <type:Token xmi:id="205" id="2" syntacticFunction="ROOT" begin="7" end="11" sofa="187"/>
+  <type:Token xmi:id="206" id="3" syntacticFunction="punct" begin="12" end="13" sofa="187"/>
+  <type:Sentence xmi:id="208" begin="0" end="13" sofa="207"/>
+  <type:Sentence xmi:id="209" begin="14" end="19" sofa="207"/>
+  <pos:POS xmi:id="210" PosValue="ADJA" begin="0" end="6" sofa="207"/>
+  <pos:POS xmi:id="211" PosValue="NE" begin="7" end="11" sofa="207"/>
+  <pos:POS xmi:id="212" PosValue="$," begin="12" end="13" sofa="207"/>
+  <pos:POS xmi:id="213" PosValue="$(" begin="14" end="19" sofa="207"/>
+  <UniversalDependencies:POS xmi:id="214" PosValue="ADJ" begin="0" end="6" sofa="207"/>
+  <UniversalDependencies:POS xmi:id="215" PosValue="PROPN" begin="7" end="11" sofa="207"/>
+  <UniversalDependencies:POS xmi:id="216" PosValue="PUNCT" begin="12" end="13" sofa="207"/>
+  <UniversalDependencies:POS xmi:id="217" PosValue="PUNCT" begin="14" end="19" sofa="207"/>
+  <type:Lemma xmi:id="218" value="lieb" begin="0" end="6" sofa="207"/>
+  <type:Lemma xmi:id="219" value="Hans" begin="7" end="11" sofa="207"/>
+  <type:Lemma xmi:id="220" value="--" begin="12" end="13" sofa="207"/>
+  <type:Lemma xmi:id="221" value="....." begin="14" end="19" sofa="207"/>
+  <syntax:TigerDependency xmi:id="222" Governor="231" Dependent="230" DependencyType="nk" flavor="basic" sofa="207"/>
+  <syntax:TigerDependency xmi:id="223" Governor="231" Dependent="231" DependencyType="ROOT" flavor="basic" sofa="207"/>
+  <syntax:TigerDependency xmi:id="224" Governor="231" Dependent="232" DependencyType="punct" flavor="basic" sofa="207"/>
+  <syntax:TigerDependency xmi:id="225" Governor="233" Dependent="233" DependencyType="ROOT" flavor="basic" sofa="207"/>
+  <dakoda:crosslayermap xmi:id="226" reflayer="ctok" index="1_1" nth="1" begin="0" end="6" sofa="207"/>
+  <dakoda:crosslayermap xmi:id="227" reflayer="ctok" index="1_2" nth="2" begin="7" end="11" sofa="207"/>
+  <dakoda:crosslayermap xmi:id="228" reflayer="ctok" index="1_3" nth="3" begin="12" end="13" sofa="207"/>
+  <dakoda:crosslayermap xmi:id="229" reflayer="ctok" index="2_1" nth="1" begin="14" end="19" sofa="207"/>
+  <type:Token xmi:id="230" id="1" syntacticFunction="nk" begin="0" end="6" sofa="207"/>
+  <type:Token xmi:id="231" id="2" syntacticFunction="ROOT" begin="7" end="11" sofa="207"/>
+  <type:Token xmi:id="232" id="3" syntacticFunction="punct" begin="12" end="13" sofa="207"/>
+  <type:Token xmi:id="233" id="1" syntacticFunction="ROOT" begin="14" end="19" sofa="207"/>
+  <type:Sentence xmi:id="235" begin="0" end="13" sofa="234"/>
+  <type:Sentence xmi:id="236" begin="14" end="19" sofa="234"/>
+  <pos:POS xmi:id="237" PosValue="ADJA" begin="0" end="6" sofa="234"/>
+  <pos:POS xmi:id="238" PosValue="NE" begin="7" end="11" sofa="234"/>
+  <pos:POS xmi:id="239" PosValue="$." begin="12" end="13" sofa="234"/>
+  <pos:POS xmi:id="240" PosValue="$(" begin="14" end="19" sofa="234"/>
+  <UniversalDependencies:POS xmi:id="241" PosValue="ADJ" begin="0" end="6" sofa="234"/>
+  <UniversalDependencies:POS xmi:id="242" PosValue="PROPN" begin="7" end="11" sofa="234"/>
+  <UniversalDependencies:POS xmi:id="243" PosValue="PUNCT" begin="12" end="13" sofa="234"/>
+  <UniversalDependencies:POS xmi:id="244" PosValue="PUNCT" begin="14" end="19" sofa="234"/>
+  <type:Lemma xmi:id="245" value="lieb" begin="0" end="6" sofa="234"/>
+  <type:Lemma xmi:id="246" value="Hans" begin="7" end="11" sofa="234"/>
+  <type:Lemma xmi:id="247" value="--" begin="12" end="13" sofa="234"/>
+  <type:Lemma xmi:id="248" value="....." begin="14" end="19" sofa="234"/>
+  <syntax:TigerDependency xmi:id="249" Governor="258" Dependent="257" DependencyType="nk" flavor="basic" sofa="234"/>
+  <syntax:TigerDependency xmi:id="250" Governor="258" Dependent="258" DependencyType="ROOT" flavor="basic" sofa="234"/>
+  <syntax:TigerDependency xmi:id="251" Governor="258" Dependent="259" DependencyType="punct" flavor="basic" sofa="234"/>
+  <syntax:TigerDependency xmi:id="252" Governor="260" Dependent="260" DependencyType="ROOT" flavor="basic" sofa="234"/>
+  <dakoda:crosslayermap xmi:id="253" reflayer="ctok" index="1_1" nth="1" begin="0" end="6" sofa="234"/>
+  <dakoda:crosslayermap xmi:id="254" reflayer="ctok" index="1_2" nth="2" begin="7" end="11" sofa="234"/>
+  <dakoda:crosslayermap xmi:id="255" reflayer="ctok" index="1_3" nth="3" begin="12" end="13" sofa="234"/>
+  <dakoda:crosslayermap xmi:id="256" reflayer="ctok" index="2_1" nth="1" begin="14" end="19" sofa="234"/>
+  <type:Token xmi:id="257" id="1" syntacticFunction="nk" begin="0" end="6" sofa="234"/>
+  <type:Token xmi:id="258" id="2" syntacticFunction="ROOT" begin="7" end="11" sofa="234"/>
+  <type:Token xmi:id="259" id="3" syntacticFunction="punct" begin="12" end="13" sofa="234"/>
+  <type:Token xmi:id="260" id="1" syntacticFunction="ROOT" begin="14" end="19" sofa="234"/>
+  <cas:Sofa xmi:id="1" sofaNum="1" sofaID="_InitialView" sofaString="Liebe Hans , ....."/>
+  <cas:Sofa xmi:id="2" sofaNum="2" sofaID="ctok" sofaString="Liebe Hans , ....."/>
+  <cas:Sofa xmi:id="29" sofaNum="3" sofaID="ctok_linbomb" sofaString="Liebe Hans , ....."/>
+  <cas:Sofa xmi:id="56" sofaNum="4" sofaID="mixtral_th1" sofaString="Lieber Hans ,"/>
+  <cas:Sofa xmi:id="79" sofaNum="5" sofaID="transgec_th1" sofaString="Lieber Hans , ....."/>
+  <cas:Sofa xmi:id="110" sofaNum="6" sofaID="mbartgec_th1" sofaString="Lieber Hans ! ....."/>
+  <cas:Sofa xmi:id="141" sofaNum="7" sofaID="spacy_ctok" sofaString="Liebe Hans , ....."/>
+  <cas:Sofa xmi:id="164" sofaNum="8" sofaID="spacy_ctok_linbomb" sofaString="Liebe Hans , ....."/>
+  <cas:Sofa xmi:id="187" sofaNum="9" sofaID="spacy_mixtral_th1" sofaString="Lieber Hans ,"/>
+  <cas:Sofa xmi:id="207" sofaNum="10" sofaID="spacy_transgec_th1" sofaString="Lieber Hans , ....."/>
+  <cas:Sofa xmi:id="234" sofaNum="11" sofaID="spacy_mbartgec_th1" sofaString="Lieber Hans ! ....."/>
+  <cas:View sofa="1" members=""/>
+  <cas:View sofa="2" members="3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28"/>
+  <cas:View sofa="29" members="30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55"/>
+  <cas:View sofa="56" members="57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78"/>
+  <cas:View sofa="79" members="80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109"/>
+  <cas:View sofa="110" members="111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140"/>
+  <cas:View sofa="141" members="142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163"/>
+  <cas:View sofa="164" members="165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186"/>
+  <cas:View sofa="187" members="188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206"/>
+  <cas:View sofa="207" members="208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233"/>
+  <cas:View sofa="234" members="235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260"/>
+</xmi:XMI>
