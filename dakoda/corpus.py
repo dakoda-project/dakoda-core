@@ -1,8 +1,14 @@
 import random
+import io
 from typing import Iterable
 from pathlib import Path
 from cassis import Cas
+from dakoda.dakoda_types import T_META
+from dakoda.dakoda_metadata_scheme import Document
 from dakoda.util import load_cas_from_file, load_dakoda_typesystem
+from xsdata.formats.dataclass.parsers import JsonParser
+from xsdata.formats.dataclass.context import XmlContext
+from xsdata.formats.dataclass.parsers.config import ParserConfig
 
 class DakodaCorpus:
     def __init__(self, path):
@@ -10,6 +16,7 @@ class DakodaCorpus:
         self.name = self.path.stem
         self.documents = [p for p in self.path.glob('*.xmi')]
         self.ts = load_dakoda_typesystem()
+        self.json_parser = JsonParser(context=XmlContext(), config=ParserConfig())
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -37,5 +44,12 @@ class DakodaCorpus:
         xmi = random.choice(self.documents)
         return load_cas_from_file(xmi, self.ts)
     
-    # https://xsdata.readthedocs.io/en/v24.4/data_binding/json_parsing/
-
+    def meta(self, doc: Cas) -> Document:
+        """Return the metadata of the given document."""
+        for meta in doc.select(T_META):
+            if meta.get('key') == "structured_metadata":
+                metadata_json_string = meta.get('value')
+                document = self.json_parser.parse(io.StringIO(metadata_json_string), Document)
+                return document
+        
+        raise ValueError("No structured metadata found in the document.")

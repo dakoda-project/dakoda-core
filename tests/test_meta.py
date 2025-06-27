@@ -1,8 +1,8 @@
 import pytest
 import io
 from dakoda_fixtures import test_cas
-from dakoda.types import T_META
-from dakoda.meta_scheme import Document
+from dakoda.dakoda_types import T_META
+from dakoda.dakoda_metadata_scheme import Document
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig

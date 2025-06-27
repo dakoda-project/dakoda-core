@@ -8,17 +8,18 @@ def test_load_corpus():
 
 def test_files():
     # TODO use fixture
-    wtld = DakodaCorpus("data/WTLD")
+    wtld = DakodaCorpus("data/ComiGs")
     docs = wtld.documents
-    assert len(docs) == 11
+    assert len(docs) == 70
     for doc in docs:
         assert doc.suffix == ".xmi"
         assert doc.is_file()
 
-def test_cas_list():
+# a bit slow ...
+def test_docs():
     # TODO use fixture
-    wtld = DakodaCorpus("data/WTLD")
-    assert sum(1 for i in wtld.docs()) == 11
+    wtld = DakodaCorpus("data/ComiGs")
+    assert sum(1 for i in wtld.docs()) == 70
 
 # as this will return a different document from the corpus every time the test is called
 # it introduces an implicit check for no document in the test corpus having document size == 0
