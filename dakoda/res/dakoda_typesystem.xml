@@ -642,7 +642,7 @@
 
             <description/>
 
-            <supertypeName>de.tudarmstadt.ukp.dkpro.core.api.ner.type.NamedEntity</supertypeName>
+            <supertypeName>uima.tcas.Annotation</supertypeName>
 
             <features>
 
