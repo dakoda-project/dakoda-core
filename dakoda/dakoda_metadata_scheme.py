@@ -2942,6 +2942,6 @@ class DocumentType:
 
 
 @dataclass
-class Document(DocumentType):
+class MetaData(DocumentType):
     class Meta:
         name = "document"

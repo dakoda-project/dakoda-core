@@ -1,10 +1,12 @@
 import random
 import io
+import polars as pl
 from typing import Iterable
 from pathlib import Path
 from cassis import Cas
+from dakoda.util import traverse_dataclass, traverse_complex
 from dakoda.dakoda_types import T_META
-from dakoda.dakoda_metadata_scheme import Document
+from dakoda.dakoda_metadata_scheme import MetaData
 from dakoda.util import load_cas_from_file, load_dakoda_typesystem
 from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.context import XmlContext
@@ -44,12 +46,30 @@ class DakodaCorpus:
         xmi = random.choice(self.documents)
         return load_cas_from_file(xmi, self.ts)
     
-    def meta(self, doc: Cas) -> Document:
+    def document_meta(self, doc: Cas) -> MetaData:
         """Return the metadata of the given document."""
         for meta in doc.select(T_META):
             if meta.get('key') == "structured_metadata":
                 metadata_json_string = meta.get('value')
-                document = self.json_parser.parse(io.StringIO(metadata_json_string), Document)
+                document = self.json_parser.parse(io.StringIO(metadata_json_string), MetaData)
                 return document
         
         raise ValueError("No structured metadata found in the document.")
+    
+    def document_meta_df(self, doc: Cas) -> pl.DataFrame:
+        meta_dict = {}
+        meta = self.document_meta(doc)
+
+        for key, value in traverse_complex(meta):
+            meta_dict[key] = value
+
+        return pl.DataFrame(meta_dict)
+        
+    def corpus_meta_df(self) -> pl.DataFrame:
+        """Return a DataFrame with metadata for the whole corpus."""
+        data = []
+        for doc in self.docs():
+            df = self.document_meta_df(doc)
+            data.append(df)
+        
+        return pl.concat(data, how="vertical")

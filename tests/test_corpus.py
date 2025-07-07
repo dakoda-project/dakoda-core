@@ -1,5 +1,5 @@
 import pytest
-from dakoda_fixtures import test_corpus
+from dakoda_fixtures import *
 from dakoda.corpus import DakodaCorpus
 
 def test_load_corpus():

@@ -1,17 +1,23 @@
 import pytest
-import io
-from dakoda_fixtures import test_cas
-from dakoda.dakoda_types import T_META
-from dakoda.dakoda_metadata_scheme import Document
-from xsdata.formats.dataclass.context import XmlContext
-from xsdata.formats.dataclass.parsers import JsonParser
-from xsdata.formats.dataclass.parsers.config import ParserConfig
+from dakoda_fixtures import *
 
-def test_meta_processing(test_cas):
-    parser = JsonParser(context=XmlContext(), config=ParserConfig())
+#def test_document_meta(test_corpus, test_cas):
+def test_document_meta(test_cas):
+    test_corpus = DakodaCorpus("data/WTLD")
 
-    for meta in test_cas.select(T_META):
-        if meta.key == "structured_metadata":
-            metadata_json_string = meta.value
-            doc = parser.parse(io.StringIO(metadata_json_string), Document)
-            print(doc)
+    meta = test_corpus.document_meta(test_cas)
+    assert meta.text.text_tokenCount == 243
+    assert meta.corpus.administrative.corpus_admin_acronym == "ComiGs"
+
+def test_document_meta_df(test_cas):
+    test_corpus = DakodaCorpus("data/ComiGs")
+    df = test_corpus.document_meta_df(test_cas)
+    print(df.head(1))
+    print(df.columns)
+
+#def test_corpus(test_corpus):
+#@pytest.mark.skip()
+def test_corpus():
+    test_corpus = DakodaCorpus("data/ComiGs")
+    df = test_corpus.corpus_meta_df()
+    print(df.head(5))
