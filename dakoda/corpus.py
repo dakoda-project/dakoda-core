@@ -67,9 +67,29 @@ class DakodaCorpus:
         
     def corpus_meta_df(self) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
+        
+        if _is_cached(self):
+            return _read_meta_cache(self)
+        
         data = []
         for doc in self.docs():
             df = self.document_meta_df(doc)
             data.append(df)
         
-        return pl.concat(data, how="vertical")
+        df_all = pl.concat(data, how="vertical")
+        _write_meta_cache(self, df_all)
+        return df_all
+    
+def _is_cached(corpus: DakodaCorpus) -> bool:
+    cache = Path('.meta_cache') / corpus.name
+    cache.with_suffix('.csv')
+    return cache.is_file()
+
+def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
+    cache = Path('.meta_cache') / corpus.name
+    df.write_csv(cache)
+    return True
+
+def _read_meta_cache(corpus: DakodaCorpus) -> pl.DataFrame:
+    cache = Path('.meta_cache') / corpus.name
+    return pl.read_csv(cache)

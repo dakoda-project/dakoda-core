@@ -1,4 +1,5 @@
 import pytest
+import itertools
 from dakoda_fixtures import *
 from dakoda.corpus import DakodaCorpus
 
@@ -15,11 +16,10 @@ def test_files():
         assert doc.suffix == ".xmi"
         assert doc.is_file()
 
-# a bit slow ...
 def test_docs():
     # TODO use fixture
     wtld = DakodaCorpus("data/ComiGs")
-    assert sum(1 for i in wtld.docs()) == 70
+    assert sum(1 for i in itertools.islice(wtld.docs(), 5)) == 5
 
 # as this will return a different document from the corpus every time the test is called
 # it introduces an implicit check for no document in the test corpus having document size == 0

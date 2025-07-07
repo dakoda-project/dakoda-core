@@ -1,4 +1,5 @@
 import cassis
+import polars as pl
 from importlib_resources import files
 from dataclasses import fields, is_dataclass
 from dakoda.dakoda_metadata_scheme import LanguageOfSpeaker, Annotation
