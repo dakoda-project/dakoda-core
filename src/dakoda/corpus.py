@@ -31,21 +31,51 @@ class DakodaCorpus:
             return False
         return self.name == other.name and self.path == other.path
 
-    def size(self) -> int:
+    def __len__(self):
         return len(self.documents)
 
-    def docs(self) -> Iterable[Cas]:
+    def __iter__(self):
         for xmi in self.documents:
-            cas = load_cas_from_file(xmi, self.ts)
-            yield cas
+            yield load_cas_from_file(xmi, self.ts)
+
+    def __getitem__(self, key):
+        # TODO: Logical Indexing, list indexing
+        if isinstance(key, str) or isinstance(key, Path):
+            return self._get_by_path(key)
+        elif isinstance(key, int):
+            return self._get_by_index(key)
+        elif isinstance(key, slice):
+            return self._get_by_slice(key)
+        else:
+            raise KeyError(f"Invalid key type: {type(key)}")
+
+    def _get_by_path(self, path: str | Path) -> Cas:
+        path = Path(path)
+        return load_cas_from_file(path, self.ts)
+
+    def _get_by_index(self, index: int) -> Cas:
+        return self._get_by_path(self.documents[index])
+
+    def _get_by_slice(self, indices_slice: slice):
+        start, stop, step = indices_slice.indices(len(self))
+        return (self._get_by_index(i) for i in range(start, stop, step))
+
+    @property
+    def size(self) -> int:
+        return len(self)
+
+    @property
+    def docs(self):
+        return iter(self)
 
     def random_doc(self) -> Cas:
         """Return a random document from the corpus."""
         if not self.documents:
             raise ValueError("No documents in the corpus.")
+
         xmi = random.choice(self.documents)
-        return load_cas_from_file(xmi, self.ts)
-    
+        return self._get_by_path(xmi)
+
     def document_meta(self, doc: Cas) -> MetaData:
         """Return the metadata of the given document."""
         for meta in doc.select(T_META):
@@ -64,7 +94,8 @@ class DakodaCorpus:
             meta_dict[key] = value
 
         return pl.DataFrame(meta_dict)
-        
+
+    @property
     def corpus_meta_df(self) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
         
