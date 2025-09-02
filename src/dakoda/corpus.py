@@ -1,24 +1,26 @@
-import random
 import io
-import polars as pl
-from typing import Iterable
+import random
 from pathlib import Path
+
+import polars as pl
 from cassis import Cas
-from dakoda.util import traverse_dataclass, traverse_complex
-from dakoda.dakoda_types import T_META
-from dakoda.dakoda_metadata_scheme import MetaData
-from dakoda.util import load_cas_from_file, load_dakoda_typesystem
-from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.context import XmlContext
+from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
+
+from dakoda.dakoda_metadata_scheme import MetaData
+from dakoda.dakoda_types import T_META
+from dakoda.util import load_cas_from_file, load_dakoda_typesystem
+from dakoda.util import traverse_complex
+
 
 class DakodaCorpus:
     def __init__(self, path):
         self.path = Path(path)
         self.name = self.path.stem
-        self.documents = [p for p in self.path.glob('*.xmi')]
+        self.documents = [p for p in self.path.glob("*.xmi")]
         self.ts = load_dakoda_typesystem()
-        self.json_parser = JsonParser(context=XmlContext(), config=ParserConfig())
+        self.json_parser = JsonParser(context=XmlContext(), config=ParserConfig()) # this should be static, I suppose?
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -76,16 +78,20 @@ class DakodaCorpus:
         xmi = random.choice(self.documents)
         return self._get_by_path(xmi)
 
+    # TODO: Should be classmethod
     def document_meta(self, doc: Cas) -> MetaData:
         """Return the metadata of the given document."""
         for meta in doc.select(T_META):
-            if meta.get('key') == "structured_metadata":
-                metadata_json_string = meta.get('value')
-                document = self.json_parser.parse(io.StringIO(metadata_json_string), MetaData)
+            if meta.get("key") == "structured_metadata":
+                metadata_json_string = meta.get("value")
+                document = self.json_parser.parse(
+                    io.StringIO(metadata_json_string), MetaData
+                )
                 return document
-        
+
         raise ValueError("No structured metadata found in the document.")
-    
+
+    # TODO: should be a classmethod
     def document_meta_df(self, doc: Cas) -> pl.DataFrame:
         meta_dict = {}
         meta = self.document_meta(doc)
@@ -98,29 +104,34 @@ class DakodaCorpus:
     @property
     def corpus_meta_df(self) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
-        
+
         if _is_cached(self):
             return _read_meta_cache(self)
-        
+
         data = []
-        for doc in self.docs():
+        for doc in self.docs:
             df = self.document_meta_df(doc)
             data.append(df)
-        
+
         df_all = pl.concat(data, how="vertical")
         _write_meta_cache(self, df_all)
         return df_all
-    
+
+
 def _is_cached(corpus: DakodaCorpus) -> bool:
-    cache = Path('.meta_cache') / corpus.name
-    cache.with_suffix('.csv')
+    cache = Path(".meta_cache") / corpus.name
+    cache.with_suffix(".csv")
     return cache.is_file()
 
+
 def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
-    cache = Path('.meta_cache') / corpus.name
+    cache_dir = Path(".meta_cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache = cache_dir / corpus.name
     df.write_csv(cache)
     return True
 
+
 def _read_meta_cache(corpus: DakodaCorpus) -> pl.DataFrame:
-    cache = Path('.meta_cache') / corpus.name
+    cache = Path(".meta_cache") / corpus.name
     return pl.read_csv(cache)

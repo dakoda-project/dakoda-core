@@ -1,28 +1,28 @@
-import pytest
 import itertools
-from dakoda_fixtures import *
-from dakoda.corpus import DakodaCorpus
 
-def test_load_corpus():
-    wtld = DakodaCorpus("data/WTLD")
+import pytest
+
+
+def test_load_corpus(wtld):
     assert wtld.name == "WTLD"
+    assert len(wtld) > 0
 
-def test_files():
-    # TODO use fixture
-    wtld = DakodaCorpus("data/ComiGs")
+
+def test_files(wtld):
     docs = wtld.documents
-    assert len(docs) == 70
-    for doc in docs:
-        assert doc.suffix == ".xmi"
-        assert doc.is_file()
+    assert len(docs) == len(wtld)
+    assert all(doc.is_file() and doc.suffix == ".xmi" for doc in docs)
 
-def test_docs():
-    # TODO use fixture
-    wtld = DakodaCorpus("data/ComiGs")
-    assert sum(1 for i in itertools.islice(wtld.docs(), 5)) == 5
+
+def test_docs(comigs):
+    assert sum(1 for i in itertools.islice(comigs.docs, 5)) == 5
+
 
 # as this will return a different document from the corpus every time the test is called
 # it introduces an implicit check for no document in the test corpus having document size == 0
-def test_random_doc(test_corpus):
-    cas = test_corpus.random_doc()
+def test_random_doc(wtld, empty_corpus):
+    cas = wtld.random_doc()
     assert len(cas.sofa_string) > 0
+
+    with pytest.raises(ValueError):
+        empty_corpus.random_doc()
