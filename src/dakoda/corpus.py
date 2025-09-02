@@ -18,7 +18,7 @@ class DakodaCorpus:
     def __init__(self, path):
         self.path = Path(path)
         self.name = self.path.stem
-        self.documents = [p for p in self.path.glob("*.xmi")]
+        self.document_paths = [p for p in self.path.glob("*.xmi")]
         self.ts = load_dakoda_typesystem()
         self.json_parser = JsonParser(context=XmlContext(), config=ParserConfig()) # this should be static, I suppose?
 
@@ -34,10 +34,10 @@ class DakodaCorpus:
         return self.name == other.name and self.path == other.path
 
     def __len__(self):
-        return len(self.documents)
+        return len(self.document_paths)
 
     def __iter__(self):
-        for xmi in self.documents:
+        for xmi in self.document_paths:
             yield load_cas_from_file(xmi, self.ts)
 
     def __getitem__(self, key):
@@ -52,11 +52,10 @@ class DakodaCorpus:
             raise KeyError(f"Invalid key type: {type(key)}")
 
     def _get_by_path(self, path: str | Path) -> Cas:
-        path = Path(path)
-        return load_cas_from_file(path, self.ts)
+        return load_cas_from_file(self.path / path, self.ts)
 
     def _get_by_index(self, index: int) -> Cas:
-        return self._get_by_path(self.documents[index])
+        return self._get_by_path(self.document_paths[index])
 
     def _get_by_slice(self, indices_slice: slice):
         start, stop, step = indices_slice.indices(len(self))
@@ -72,10 +71,10 @@ class DakodaCorpus:
 
     def random_doc(self) -> Cas:
         """Return a random document from the corpus."""
-        if not self.documents:
+        if not self.document_paths:
             raise ValueError("No documents in the corpus.")
 
-        xmi = random.choice(self.documents)
+        xmi = random.choice(self.document_paths)
         return self._get_by_path(xmi)
 
     # TODO: Should be classmethod
