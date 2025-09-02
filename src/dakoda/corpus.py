@@ -43,6 +43,10 @@ class DakodaCorpus:
     def __getitem__(self, key):
         # TODO: Logical Indexing, list indexing
         if isinstance(key, str) or isinstance(key, Path):
+            # TODO: make more robust. Options:
+            # path, must be validated. '/some/path/CorpusDir/filename.xmi' --> self.path == key.parent, filename exists
+            # string could be filename. 'filename.xmi' --> see if self.path / filename exists
+            # string could be id. 'filename' --> see if self.path / filename + xmi exists
             return self._get_by_path(key)
         elif isinstance(key, int):
             return self._get_by_index(key)
@@ -77,7 +81,8 @@ class DakodaCorpus:
         xmi = random.choice(self.document_paths)
         return self._get_by_path(xmi)
 
-    # TODO: Should be classmethod
+    # TODO: Should be classmethod, potentiall even on MetaData? MetaData.from_cas(doc)
+    # this method can remain as a convenience method.
     def document_meta(self, doc: Cas) -> MetaData:
         """Return the metadata of the given document."""
         for meta in doc.select(T_META):
@@ -90,7 +95,8 @@ class DakodaCorpus:
 
         raise ValueError("No structured metadata found in the document.")
 
-    # TODO: should be a classmethod
+    # TODO: should be a classmethod / an instance method on MetaData
+    # usage: MetaData.from_cas(doc).to_df()
     def document_meta_df(self, doc: Cas) -> pl.DataFrame:
         meta_dict = {}
         meta = self.document_meta(doc)
@@ -117,6 +123,7 @@ class DakodaCorpus:
         return df_all
 
 
+# TODO: instance method
 def _is_cached(corpus: DakodaCorpus) -> bool:
     cache = Path(".meta_cache") / corpus.name
     cache.with_suffix(".csv")
@@ -124,7 +131,7 @@ def _is_cached(corpus: DakodaCorpus) -> bool:
 
 
 def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
-    cache_dir = Path(".meta_cache")
+    cache_dir = Path(".meta_cache") # TODO: constant, configurable via .env
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache = cache_dir / corpus.name
     df.write_csv(cache)
