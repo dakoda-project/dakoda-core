@@ -43,10 +43,6 @@ class DakodaCorpus:
     def __getitem__(self, key):
         # TODO: Logical Indexing, list indexing
         if isinstance(key, str) or isinstance(key, Path):
-            # TODO: make more robust. Options:
-            # path, must be validated. '/some/path/CorpusDir/filename.xmi' --> self.path == key.parent, filename exists
-            # string could be filename. 'filename.xmi' --> see if self.path / filename exists
-            # string could be id. 'filename' --> see if self.path / filename + xmi exists
             return self._get_by_path(key)
         elif isinstance(key, int):
             return self._get_by_index(key)
@@ -56,7 +52,13 @@ class DakodaCorpus:
             raise KeyError(f"Invalid key type: {type(key)}")
 
     def _get_by_path(self, path: str | Path) -> Cas:
-        return load_cas_from_file(self.path / path, self.ts)
+        path = Path(path)
+
+        if path.is_file():
+            return load_cas_from_file(path, self.ts)
+
+        # cases that do not point to a file, like a filename or just the id (file stem)
+        return load_cas_from_file(self.path / (path.stem + '.xmi'), self.ts)
 
     def _get_by_index(self, index: int) -> Cas:
         return self._get_by_path(self.document_paths[index])

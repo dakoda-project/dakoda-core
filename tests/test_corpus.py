@@ -40,9 +40,14 @@ def test_subscript_access(comigs):
     assert isinstance(doc, Cas)
 
     # select by id
-    doc = comigs['bThN_2.xmi']
-    doc = comigs[path]
+    doc = comigs['bThN_2']
     assert isinstance(doc, Cas)
+
+    doc = comigs['bThN_2.xmi']
+    assert isinstance(doc, Cas)
+
+    with pytest.raises(FileNotFoundError):
+        comigs['doesnotexist.xmi']
 
 # as this will return a different document from the corpus every time the test is called
 # it introduces an implicit check for no document in the test corpus having document size == 0
