@@ -1,25 +1,23 @@
-[project]
+[tool.poetry]
 name = "dakoda-core"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Marius Hamacher", email = "marius.hamacher@outlook.de"},
-    {name = "Torsten Zesch", email = "torsten.zesch@fernuni-hagen.de"}
+    "Marius Hamacher <marius.hamacher@outlook.de>",
+    "Torsten Zesch <torsten.zesch@fernuni-hagen.de>"
 ]
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "polars (>=1.30.0,<2.0.0)",
-    "dkpro-cassis (>=0.10.1,<1.0.0)",
-    "pytest (>=8.4.0,<9.0.0)",
-    "xsdata (==22.12)",
-]
-
-[tool.poetry]
 packages = [
     { include = "dakoda", from="src"},
     { include = "dakoda_typesystem.xml", from = "src/dakoda/res" }
 ]
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+polars = ">=1.30.0,<2.0.0"
+dkpro-cassis = ">=0.10.1,<1.0.0"
+pytest = ">=8.4.0,<9.0.0"
+xsdata = "22.12"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
