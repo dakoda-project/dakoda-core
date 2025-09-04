@@ -8,7 +8,7 @@ import polars as pl
 from cassis import Cas
 
 from dakoda.metadata import MetaData
-from dakoda.util import load_cas_from_file, load_dakoda_typesystem
+from dakoda.uima import load_cas_from_file, load_dakoda_typesystem
 
 
 class DakodaDocument:
@@ -67,6 +67,7 @@ class DakodaCorpus:
 
     def __getitem__(self, key):
         # TODO: Logical Indexing, list indexing
+        # TODO: Querying Corpus
         if isinstance(key, str) or isinstance(key, Path):
             return self._get_by_path(key)
         elif isinstance(key, int):

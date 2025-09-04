@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from dakoda.corpus import DakodaCorpus
-from dakoda.util import load_dakoda_typesystem, load_cas_from_file
+from dakoda.uima import load_dakoda_typesystem, load_cas_from_file
 
 # TODO: make configurable via .env file, this should be the default
 TESTFILES_DIR = Path(__file__).parent.parent / "data"

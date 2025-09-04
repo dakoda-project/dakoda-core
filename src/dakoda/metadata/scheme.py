@@ -3,541 +3,57 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass, field, fields, is_dataclass
 from decimal import Decimal
-from enum import Enum
-from typing import List, Optional, Union, Any, Generator, Tuple
+from typing import List, Optional, Union, Any, Generator, Tuple, Iterator
 
 import polars as pl
-from importlib_resources import files
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.models.datatype import XmlDate, XmlPeriod
 
-from dakoda.types import T_META
-from dakoda.util import enum_from_file
-
-# To prevent extremely long enums in code, enum values have been moved to resources
-_type_mappings_dir = files("dakoda.res.type_mappings")
-
-
-@enum_from_file(_type_mappings_dir.joinpath("LanguageCode.csv"))
-class LanguageCode(Enum):
-    """Three letter language codes.
-
-    Attributes are Uppercased, values lowercased.
-
-    Examples:
-        >>> from dakoda.languages import LanguageCode
-        >>> LanguageCode.DEU.value == 'deu'
-        True
-        >>> CountryType.DEU == 'DEU'
-        False
-        >>> CountryType.DEU == CountryType('deu')
-        True
-    """
-
-    pass
-
-
-@enum_from_file(_type_mappings_dir.joinpath("LanguageGroup.csv"))
-class LanguageGroup(Enum):
-    pass
-
-
-@enum_from_file(_type_mappings_dir.joinpath("LanguageNameDe.csv"))
-class LanguageNameDe(Enum):
-    pass
-
-
-@enum_from_file(_type_mappings_dir.joinpath("LanguageNameEn.csv"))
-class LanguageNameEn(Enum):
-    pass
-
-
-@enum_from_file(_type_mappings_dir.joinpath("CountryType.csv"))
-class CountryType(Enum):
-    """
-    Three-letter country codes defined in ISO 3166-1.
-    Attributes are Uppercased.
-
-    Examples:
-        >>> from dakoda.countries import CountryType
-        >>> CountryType.DEU.value == 'DEU'
-        True
-        >>> CountryType.DEU == CountryType('DEU')
-        True
-        >>> CountryType.DEU == 'deu'
-        False
-    """
-
-    pass
-
-
-@enum_from_file(_type_mappings_dir.joinpath("CountryTypeOrNa.csv"))
-class CountryTypeOrNa(Enum):
-    """
-    A country specified as COUNTRY_TYPE or a string indicating that no value is
-    available.
-    """
-
-    pass
-
-
-@enum_from_file(_type_mappings_dir.joinpath("DkdTrgLang.csv"))
-class DkdTrgLang(Enum):
-    pass
-
-
-class CoarseCefrLevel(Enum):
-    """A list of coarse CEFR LEVELS .
-
-    The A1 and A2 are merged. The same goes for the B and C levels.
-    """
-
-    A = "A"
-    B = "B"
-    C = "C"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class CorpusAvailabilityType(Enum):
-    """
-    A list of license types by which a corpus may be available, if at all.
-
-    :cvar CLOSED: access only for members of the DAKODA Project
-    :cvar RESTRICTED: access restricted to members of German academic
-        institutions
-    :cvar SPECIAL_RESTRICTIONS: special restrictions
-    :cvar OPEN: open; all CC-licenses
-    :cvar NOT_AVAILABLE: information is not available
-    """
-
-    CLOSED = "closed"
-    RESTRICTED = "restricted"
-    SPECIAL_RESTRICTIONS = "special restrictions"
-    OPEN = "open"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class CorpusGroup(Enum):
-    CDLK = "CDLK"
-    KIEZ_DEUTSCH_KORPUS = "KiezDeutsch-Korpus"
-    DISKO = "DISKO"
-    EURAC_KORPORA = "EURAC-Korpora"
-    FALKO = "Falko"
-    FD_LEX = "FD-Lex"
-    HA_MA_TA_C = "HaMaTaC"
-    HA_MO_TI_C = "HaMoTiC"
-    NOT_APPLICABLE = "notApplicable"
-
-
-class DakodaProjectDuration(Enum):
-    VALUE_2022_2025 = "2022-2025"
-
-
-class DataProductionSetting(Enum):
-    """
-    :cvar EDUCATIONAL_SETTING:
-    :cvar NATURALISTIC:
-    :cvar OFFICIAL_LANGUAGE_TEST: Official language testing refers to a
-        situation where language testing is performed by an approved
-        language assessment body.
-    :cvar RESEARCH_PROJECT:
-    :cvar LANGUAGE_COURSE:
-    :cvar NOT_AVAILABLE:
-    """
-
-    EDUCATIONAL_SETTING = "educational setting"
-    NATURALISTIC = "naturalistic"
-    OFFICIAL_LANGUAGE_TEST = "officialLanguageTest"
-    RESEARCH_PROJECT = "research project"
-    LANGUAGE_COURSE = "language course"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class DataProductionSettingConceptualMode(Enum):
-    """
-    A list of possible ceonceptual modes in which the corpus data was produced.
-    """
-
-    SPOKEN = "spoken"
-    WRITTEN = "written"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class DataProductionSettingMode(Enum):
-    """
-    A list of possible modes in which the corpus data was produced.
-    """
-
-    SPOKEN = "spoken"
-    WRITTEN = "written"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class DkdContributor(Enum):
-    """
-    A person working for the Dakoda project.
-    """
-
-    JAMILA_BL_SING = "Jamila Bläsing"
-    LUISE_B_TTCHER = "Luise Böttcher"
-    SHANNY_DRUKER = "Shanny Druker"
-    LISA_LENORT = "Lisa Lenort"
-    ANNETTE_PORTMANN = "Annette Portmann"
-    CHRISTINE_RENKER = "Christine Renker"
-    JOSEF_RUPPENHOFER = "Josef Ruppenhofer"
-    MATTHIAS_SCHWENDEMANN = "Matthias Schwendemann"
-    IULIA_SUCUTARDEAN = "Iulia Sucutardean"
-    KATRIN_WISNIEWSKI = "Katrin Wisniewski"
-    TORSTEN_ZESCH = "Torsten Zesch"
-
-
-class DkdInstitution(Enum):
-    UNIVERSIT_T_LEIPZIG = "Universität Leipzig"
-    FERN_UNIVERSIT_T_IN_HAGEN = "FernUniversität in Hagen"
-
-
-class DkdProjectHead(Enum):
-    """
-    A principal investigator of the Dakoda project.
-    """
-
-    KATRIN_WISNIEWSKI = "Katrin Wisniewski"
-    TORSTEN_ZESCH = "Torsten Zesch"
-
-
-class DkdProjectName(Enum):
-    """
-    Vollständiger Name des DAKODA-Projekts.
-    """
-
-    DATENKOMPETENZEN_IN_DA_F_DA_Z_EXPLORATION_SPRACHTECHNOLOGISCHER_ANS_TZE_ZUR_ANALYSE_VON_L2_ERWERBSSTUFEN_IN_LERNERKORPORA_DES_DEUTSCHEN = "Datenkompetenzen in DaF/DaZ: Exploration sprachtechnologischer Ansätze zur Analyse von L2-Erwerbsstufen in Lernerkorpora des Deutschen"
-
-
-class DkdProjectType(Enum):
-    """
-    The type of funding that supported the DADKOA project.
-    """
-
-    BUNDESMINISTERIUM_F_R_BILDUNG_UND_FORSCHUNG_BMBF = (
-        "Bundesministerium für Bildung und Forschung (BMBF)"
-    )
-
-
-class EducationalStage(Enum):
-    """
-    The education stage the learner is in at the time of data collection.
-    """
-
-    EARLY_CHILDHOOD = "early childhood"
-    PRIMARY = "primary"
-    LOWER_SECONDARY = "lower secondary"
-    UPPER_SECONDARY = "upper secondary"
-    POST_SECONDARY_NON_TERTIARY = "post-secondary non-tertiary"
-    SHORT_CYCLE_TERTIARY = "short-cycle tertiary"
-    BACHELOR = "Bachelor"
-    MASTER = "Master"
-    DOCTORATE = "Doctorate"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class FormalityType(Enum):
-    """
-    Formality level of the task.
-    """
-
-    INFORMAL = "informal"
-    UNMARKED_TO_INFORMAL = "unmarked to informal"
-    UNMARKED = "unmarked"
-    UNMARKED_TO_FORMAL = "unmarked to formal"
-    FORMAL = "formal"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class Gender(Enum):
-    FEMALE = "female"
-    MALE = "male"
-    NON_BINARY = "non-binary"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class InteractionTypes(Enum):
-    """
-    A specification of the language combinations used .
-
-    :cvar ONLY_L1_SPEAKERS: Only L1 speakers take part in the
-        interaction.
-    :cvar ONLY_L2_SPEAKERS: Only L2 speakers are part of the
-        interaction.
-    :cvar L1_AND_L2_SPEAKERS_MIXED: A mix of L1- and L2-speakers is part
-        of the interaction.
-    :cvar NOT_AVAILABLE:
-    :cvar NOT_APPLICABLE:
-    """
-
-    ONLY_L1_SPEAKERS = "only L1-speakers"
-    ONLY_L2_SPEAKERS = "only L2 speakers"
-    L1_AND_L2_SPEAKERS_MIXED = "L1 and L2 speakers mixed"
-    NOT_AVAILABLE = "notAvailable"
-    NOT_APPLICABLE = "notApplicable"
-
-
-class L1Constellation(Enum):
-    MONO = "mono"
-    MULTI = "multi"
-
-
-class LangStatus(Enum):
-    L1 = "L1"
-    L2 = "L2"
-    TARGET_LANGUAGE = "Target language"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class LearnerAgeRange(Enum):
-    """
-    A predefined set of age ranges that are associated with different types of
-    language acquisition processes.
-    """
-
-    VALUE_0_BIS_3_ERSTSPRACHERWERB = "0 bis 3, Erstspracherwerb"
-    VALUE_4_BIS_6_FR_HER_KINDLICHER_ZWEITSPRACHERWERB = (
-        "4 bis 6, Früher (kindlicher) Zweitspracherwerb"
-    )
-    VALUE_7_BIS_8_SP_TER_KINDLICHER_ZWEITSPRACHERWERB_FREMDSPRACHERWERB = (
-        "7 bis 8,(Später kindlicher) Zweitspracherwerb / Fremdspracherwerb"
-    )
-    VALUE_9_BIS_12_SP_TER_KINDLICHER_ZWEITSPRACHERWERB_FREMDSPRACHERWERB = (
-        "9 bis 12, (später kindlicher) Zweitspracherwerb / Fremdspracherwerb"
-    )
-    VALUE_12_BIS_18_ZWEITSPRACHERWERB_FREMDSPRACHERWERB_VON_JUGENDLICHEN_UND_ERWACHSENEN = "12 bis 18, Zweitspracherwerb / Fremdspracherwerb (von Jugendlichen und Erwachsenen)"
-    VALUE_19_BIS_35_ZWEITSPRACHERWERB_FREMDSPRACHERWERB_VON_JUGENDLICHEN_UND_ERWACHSENEN = "19 bis 35, Zweitspracherwerb / Fremdspracherwerb (von Jugendlichen und Erwachsenen)"
-    LTER_ALS_35_ZWEITSPRACHERWERB_FREMDSPRACHERWERB_VON_JUGENDLICHEN_UND_ERWACHSENEN = "älter als 35, Zweitspracherwerb / Fremdspracherwerb (von Jugendlichen und Erwachsenen)"
-    UNKLAR_BZW_SONSTIGE = "unklar bzw. sonstige"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class LearnerTaskType(Enum):
-    """
-    Type of task used in collecting the data.
-    """
-
-    BOOK_REVIEW = "book review"
-    CONSULTATION = "consultation"
-    CONVERSATION = "conversation"
-    DESCRIPTION = "description"
-    ESSAY = "essay"
-    INSTRUCTION = "instruction"
-    INTERVIEW = "interview"
-    LETTER = "letter"
-    MAP_TASK = "map task"
-    NARROW_ELICITATION_TASK = "narrow elicitation task"
-    POST_IN_A_FORUM = "post in a forum"
-    PROBLEM_SOVLING = "problem sovling"
-    REPORT = "report"
-    STORY = "story"
-    SUMMARY = "summary"
-    TRANSLATION = "translation"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class NaString(Enum):
-    """
-    A string indicating that no value is available for a metadatum or that the
-    metadatum is not applicable.
-    """
-
-    NOT_AVAILABLE = "notAvailable"
-    NOT_APPLICABLE = "notApplicable"
-
-
-class PossibilitiesForComparisons(Enum):
-    """
-    Possibilities for comparing tasks and time points.
-
-    :cvar A_1: one task, done once
-    :cvar A_N: one task, done repeatedly
-    :cvar M_A_N: several tasks, each done repeatedly
-    :cvar M_A_1: several tasks , each done once
-    :cvar NOT_AVAILABLE:
-    """
-
-    A_1 = "A-1"
-    A_N = "A-n"
-    M_A_N = "mA-n"
-    M_A_1 = "mA-1"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class ProficiencyAssessmentMethod(Enum):
-    """
-    A type of proficiency assessment.
-    """
-
-    INDEPENDENT_INSTRUMENT = "independent instrument"
-    TOTAL_TEST_SCORE = "total test score"
-    OTHER = "other"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class ProficiencyAssignmentMethod(Enum):
-    LEARNER_CENTRED = "learner-centred"
-    TEXT_CENTRED = "text-centred"
-    AUTOMATIC = "automatic"
-    NONE = "none"
-    NOT_AVAILABLE = "notAvailable"
-    NOT_APPLICABLE = "notApplicable"
-
-
-class ProficiencyAssignmentMethodType(Enum):
-    """
-    Method used for proficiency assessment.
-    """
-
-    SCORE_ON_TEXT = "score on text"
-    TEACHER_S_EVALUATION = "teacher's evaluation"
-    POST_HOC_ASSIGNMENT = "post-hoc assignment"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class ProficiencyLevel(Enum):
-    """A list of possible coarse proficiency levels specified as CEFR levels or
-    ranges.
-
-    Including value "notAvailable"
-    """
-
-    A1 = "A1"
-    A2 = "A2"
-    B1 = "B1"
-    B2 = "B2"
-    C1 = "C1"
-    C2 = "C2"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class RhetoricalFunctions(Enum):
-    APPLYING = "applying"
-    ARGUING = "arguing"
-    ASKING_FOR_HELP = "asking for help"
-    ASKING_FOR_INFORMATION = "asking for information"
-    BUILD_A_SENTENCE = "build a sentence"
-    COMPARING = "comparing"
-    COMPLAINING = "complaining"
-    DESCRIBING = "describing"
-    EXPRESS_CONGRATULATIONS = "express congratulations"
-    GIVING_ADVICE = "giving advice"
-    INFORMING = "informing"
-    INSTRUCTING = "instructing"
-    NARRATING = "narrating"
-    OFFERING_SOMETHING = "offering something"
-    ORGANISE_MEETING = "organise meeting"
-    QUESTION_AND_ANSWER = "question and answer"
-    READING_ALOUD = "reading aloud"
-    REPORTING = "reporting"
-    SUMMARISING = "summarising"
-    TRANSLATING = "translating"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class StorageUnit(Enum):
-    KB = "KB"
-    MB = "MB"
-    GB = "GB"
-    TB = "TB"
-    PB = "PB"
-
-
-class StudyDesign(Enum):
-    """
-    The study design under which the corpus data was produced.
-    """
-
-    LONGITUDINAL = "longitudinal"
-    PSEUDO_LONGITUDINAL = "pseudo-longitudinal"
-    CROSS_SECTIONAL = "cross-sectional"
-
-
-class TaskStimulusType(Enum):
-    """
-    Type of stimulus for the task.
-    """
-
-    ADVERTISEMENT = "advertisement"
-    ARTICLE = "article"
-    ARTICLES = "articles"
-    BOOK = "book"
-    COMIC = "comic"
-    DESCRIPTION_OF_A_SITUATION = "description of a situation"
-    DIAGRAM = "diagram"
-    ESSAY = "essay"
-    EXTRACT_FROM_A_DOCTORAL_DISSERTATION = "extract from a doctoral dissertation"
-    EXTRACT_FROM_A_DOCTORAL_ARTICLES = "extract from a doctoral articles"
-    FIGURE = "figure"
-    TEXT_EDITED_FOR_TEACHING = "text edited for teaching"
-    FORM = "form"
-    INTERVIEW = "interview"
-    JOB_ADVERTISEMENT = "job advertisement"
-    LETTER = "letter"
-    LIST_OF_WORDS_OR_EXPRESSIONS = "list of words or expressions"
-    MAP = "map"
-    ORAL_INSTRUCTIONS = "oral instructions"
-    PICTURE_S = "picture(s)"
-    QUESTIONNAIRE = "questionnaire"
-    QUOTE = "quote"
-    SCENE_ACTED_OUT = "scene acted out"
-    TALKS = "talks"
-    VIDEO = "video"
-    WRITTEN_INSTRUCTION = "written instruction"
-    NOT_AVAILABLE = "notAvailable"
-    NOT_APPLICABLE = "notApplicable"
-
-
-class TopicType(Enum):
-    """
-    A list of topic types that may be assigned to texts.
-    """
-
-    DOMESTIC = "domestic"
-    DAILY_ACTIVITIES = "daily activities"
-    BUSINESS_WORK_PLACE = "business/work place"
-    SCIENCE = "science"
-    EDUCATION_ACADEMIC = "education / academic"
-    GOVERNMENT_LEGAL_POLITICS = "government / legal / politics"
-    RELIGION = "religion"
-    SPORTS = "sports"
-    ART_ENTERTAINEMENT = "art / entertainement"
-    OTHER = "other"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class TrgLangInputType(Enum):
-    """
-    Dominant word order type according to WALS.
-    """
-
-    MAINLY_WITHOUT_CONTROLLED_TEACHING_PROCESSES = (
-        "mainly without controlled teaching processes"
-    )
-    MAINLY_IN_CONTROLLED_TEACHING_CONTEXTS = "mainly in controlled teaching contexts"
-    HYBRID = "hybrid"
-    NOT_AVAILABLE = "notAvailable"
-
-
-class WordOrderType(Enum):
-    """
-    Dominant word order type according to WALS.
-    """
-
-    SOV = "SOV"
-    SVO = "SVO"
-    VSO = "VSO"
-    SVO_VSO = "SVO ; VSO"
-    SOV_SVO = "SOV; SVO"
-    NO_DOMINANT_ORDER = "no dominant order"
-    UNCLEAR = "unclear"
-    NOT_AVAILABLE = "notAvailable"
+from dakoda.uima import T_META
+from dakoda.metadata.constants import (
+    LanguageCode,
+    LanguageGroup,
+    LanguageNameDe,
+    LanguageNameEn,
+    CountryType,
+    CountryTypeOrNa,
+    DkdTrgLang,
+    CoarseCefrLevel,
+    CorpusAvailabilityType,
+    CorpusGroup,
+    DakodaProjectDuration,
+    DataProductionSetting,
+    DataProductionSettingConceptualMode,
+    DataProductionSettingMode,
+    DkdContributor,
+    DkdInstitution,
+    DkdProjectHead,
+    DkdProjectName,
+    DkdProjectType,
+    EducationalStage,
+    FormalityType,
+    Gender,
+    InteractionTypes,
+    L1Constellation,
+    LangStatus,
+    LearnerAgeRange,
+    LearnerTaskType,
+    NaString,
+    PossibilitiesForComparisons,
+    ProficiencyAssessmentMethod,
+    ProficiencyAssignmentMethod,
+    ProficiencyAssignmentMethodType,
+    ProficiencyLevel,
+    RhetoricalFunctions,
+    StorageUnit,
+    StudyDesign,
+    TaskStimulusType,
+    TopicType,
+    TrgLangInputType,
+    WordOrderType,
+)
 
 
 @dataclass
@@ -2708,6 +2224,58 @@ class DocumentType:
     )
 
 
+# Todo: Might be better as a class. seems to work fine for now.
+def _traverse_dataclass_fields(obj: Any, depth: int = 0) -> Iterator[Tuple[str, Any]]:
+    """
+    Recursively traverse a dataclass object and yield all field names and values.
+
+    This function walks through a dataclass instance and its nested dataclass fields,
+    yielding tuples of (field_name, field_value) for all non-None leaf values.
+    It handles nested dataclasses, lists/tuples of dataclasses, and dictionaries
+    containing dataclasses.
+
+    Args:
+        obj: The dataclass instance to traverse. Must be a dataclass object.
+        depth: Current recursion depth (used for tracking, not for limiting).
+               Defaults to 0.
+
+    Yields:
+        Tuple[str, Any]: A tuple containing the field name and its value.
+                        For primitive values, yields (field_name, field_value).
+                        For items in lists/tuples, yields (field_name, item).
+                        For dictionary items, yields (key, value).
+
+    Warning:
+        This function may cause infinite recursion if the dataclass contains
+        circular references, as the circular reference detection is not
+        currently implemented.
+    """
+    if not is_dataclass(obj):
+        raise TypeError(f"Object of type {type(obj)} is not a dataclass.")
+
+    for field in fields(obj):
+        field_value = getattr(obj, field.name)
+
+        if field_value is None:
+            continue
+        elif is_dataclass(field_value):
+            yield from _traverse_dataclass_fields(field_value, depth + 2)
+        elif isinstance(field_value, (list, tuple)):
+            for i, item in enumerate(field_value):
+                if is_dataclass(item):
+                    yield from _traverse_dataclass_fields(item, depth + 3)
+                else:
+                    yield (field.name, item)
+        elif isinstance(field_value, dict):
+            for key, value in field_value.items():
+                if is_dataclass(value):
+                    yield from _traverse_dataclass_fields(value, depth + 3)
+                else:
+                    yield (key, value)
+        else:
+            yield (field.name, field_value)
+
+
 @dataclass
 class MetaData(DocumentType):
     _json_parser = JsonParser(context=XmlContext(), config=ParserConfig())
@@ -2727,91 +2295,12 @@ class MetaData(DocumentType):
     class Meta:
         name = "document"
 
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+        return _traverse_dataclass_fields(self)
+
     def to_df(self):
         meta_dict = {}
-        for key, value in traverse_complex(self):
+        for key, value in self:
             meta_dict[key] = value
 
         return pl.DataFrame(meta_dict)
-
-
-def traverse_dataclass(
-    obj: Any, path: str = ""
-) -> Generator[Tuple[str, Any], None, None]:
-    """Generator that yields (path, value) tuples for leaf nodes only"""
-    if hasattr(obj, "__dataclass_fields__"):
-        for field in fields(obj):
-            field_value = getattr(obj, field.name)
-            current_path = f"{path}.{field.name}" if path else field.name
-
-            print("t:", current_path, " - ", type(field_value))
-            if (
-                type(field_value) == LanguageOfSpeaker
-                or type(field_value) == Annotation
-            ):
-                # elif isinstance(field_value, (LanguageOfSpeaker, Annotation)):
-                # Special handling for LanguageOfSpeaker and Annotation
-                ######## TODO
-                # for now ignore, see how this can be treated later
-                print("----------- HIER -------------")
-                pass
-
-            # Only yield if this is a leaf node (not a nested dataclass)
-            if hasattr(field_value, "__dataclass_fields__"):
-                # This is a nested dataclass, recurse but don't yield
-                yield from traverse_dataclass(field_value, current_path)
-            else:
-                if isinstance(field_value, list):
-                    # TODO needs to be handled better
-                    # for now only return first element of list
-                    if len(field_value) > 0:
-                        field_value = field_value[0]
-                        if hasattr(field_value, "__dataclass_fields__"):
-                            yield from traverse_dataclass(field_value, current_path)
-                        elif (
-                            type(field_value) == LanguageOfSpeaker
-                            or type(field_value) == Annotation
-                        ):
-                            # elif isinstance(field_value, (LanguageOfSpeaker, Annotation)):
-                            # TODO: Special handling for LanguageOfSpeaker and Annotation
-                            # for now ignore, see how this can be treated later
-                            pass
-                    else:
-                        field_value = ""
-
-                # This is a leaf node, yield it
-                yield (current_path, field_value)
-
-
-def traverse_complex(
-    obj: Any, depth: int = 0
-) -> Generator[Tuple[str, Any], None, None]:
-    # Prevent infinite recursion with circular references
-    obj_id = id(obj)
-
-    if is_dataclass(obj):
-        indent = "  " * depth
-
-        for field in fields(obj):
-            field_value = getattr(obj, field.name)
-
-            if field_value is None:
-                pass
-            elif is_dataclass(field_value):
-                yield from traverse_complex(field_value, depth + 2)
-            elif isinstance(field_value, (list, tuple)):
-                for i, item in enumerate(field_value):
-                    if is_dataclass(item):
-                        yield from traverse_complex(item, depth + 3)
-                    else:
-                        yield (field.name, item)
-            elif isinstance(field_value, dict):
-                print(f"dict with {len(field_value)} items")
-                for key, value in field_value.items():
-                    if is_dataclass(value):
-                        yield from traverse_complex(value, depth + 3)
-                    else:
-                        print(f"{indent}    {key}: {value}")
-                        yield (key, value)
-            else:
-                yield (field.name, field_value)

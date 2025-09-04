@@ -21,7 +21,9 @@ def test_docs(comigs):
     assert sum(1 for i in itertools.islice(comigs.docs, 5)) == 5
 
     assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs, 5))
-    assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs.docs, 5))
+    assert all(
+        isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs.docs, 5)
+    )
 
 
 def test_subscript_access(comigs):
@@ -29,7 +31,7 @@ def test_subscript_access(comigs):
     first_doc = comigs[0]
     last_doc = comigs[-1]
     assert isinstance(first_doc, DakodaDocument)
-    assert first_doc.id == '2mVs_1'
+    assert first_doc.id == "2mVs_1"
     assert first_doc.corpus == comigs
     assert isinstance(last_doc, DakodaDocument)
 
@@ -45,14 +47,15 @@ def test_subscript_access(comigs):
     assert isinstance(doc, DakodaDocument)
 
     # select by id
-    doc = comigs['bThN_2']
+    doc = comigs["bThN_2"]
     assert isinstance(doc, DakodaDocument)
 
-    doc = comigs['bThN_2.xmi']
+    doc = comigs["bThN_2.xmi"]
     assert isinstance(doc, DakodaDocument)
 
     with pytest.raises(FileNotFoundError):
-        comigs['doesnotexist.xmi']
+        comigs["doesnotexist.xmi"]
+
 
 # as this will return a different document from the corpus every time the test is called
 # it introduces an implicit check for no document in the test corpus having document size == 0
@@ -68,7 +71,7 @@ def test_document(test_cas, comigs):
     # create with external reference
     doc = DakodaDocument(
         cas=test_cas,
-        id='TestDOC_27921',
+        id="TestDOC_27921",
         corpus=comigs,
     )
 
@@ -77,4 +80,3 @@ def test_document(test_cas, comigs):
         cas=test_cas,
     )
     assert len(doc.text) != 0
-
