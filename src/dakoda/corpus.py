@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-import io
 import random
 from pathlib import Path
 from typing import Iterator
 
 import polars as pl
 from cassis import Cas
-from xsdata.formats.dataclass.context import XmlContext
-from xsdata.formats.dataclass.parsers import JsonParser
-from xsdata.formats.dataclass.parsers.config import ParserConfig
 
 from dakoda.dakoda_metadata_scheme import MetaData
-from dakoda.dakoda_types import T_META
 from dakoda.util import load_cas_from_file, load_dakoda_typesystem
-from dakoda.util import traverse_complex
 
 
 class DakodaDocument:
-    def __init__(self, cas: Cas, id: str | None = None, corpus: DakodaCorpus | None = None):
+    def __init__(
+        self, cas: Cas, id: str | None = None, corpus: DakodaCorpus | None = None
+    ):
         self.cas = cas
         self.id = id
         self.corpus = corpus
@@ -27,8 +23,22 @@ class DakodaDocument:
     def text(self) -> str:
         return self.cas.sofa_string
 
+    @property
+    def meta(self) -> MetaData:
+        return MetaData.from_cas(self.cas)
+
 
 class DakodaCorpus:
+    # this method can remain as a convenience method.
+    @staticmethod
+    def document_meta(doc: DakodaDocument) -> MetaData:
+        """Return the metadata of the given document."""
+        return doc.meta
+
+    @staticmethod
+    def document_meta_df(doc: DakodaDocument) -> pl.DataFrame:
+        return doc.meta.to_df()
+
     ts = load_dakoda_typesystem()
 
     def __init__(self, path):
@@ -36,10 +46,6 @@ class DakodaCorpus:
         self.name = self.path.stem
         self.document_paths = [p for p in self.path.glob("*.xmi")]
         self.document_paths.sort()
-
-        self.json_parser = JsonParser(
-            context=XmlContext(), config=ParserConfig()
-        )  #TODO: Move this to MetaData this should be static, I suppose?
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -102,32 +108,6 @@ class DakodaCorpus:
 
         xmi = random.choice(self.document_paths)
         return self._get_by_path(xmi)
-
-    # TODO: Should be classmethod, potentiall even on MetaData? MetaData.from_cas(doc)
-    # TODO: The Cas needs abstration. Document. Document.meta --> MetaData
-    # this method can remain as a convenience method.
-    def document_meta(self, doc: Cas) -> MetaData:
-        """Return the metadata of the given document."""
-        for meta in doc.select(T_META):
-            if meta.get("key") == "structured_metadata":
-                metadata_json_string = meta.get("value")
-                document = self.json_parser.parse(
-                    io.StringIO(metadata_json_string), MetaData
-                )
-                return document
-
-        raise ValueError("No structured metadata found in the document.")
-
-    # TODO: should be a classmethod / an instance method on MetaData
-    # usage: MetaData.from_cas(doc).to_df()
-    def document_meta_df(self, doc: Cas) -> pl.DataFrame:
-        meta_dict = {}
-        meta = self.document_meta(doc)
-
-        for key, value in traverse_complex(meta):
-            meta_dict[key] = value
-
-        return pl.DataFrame(meta_dict)
 
     @property
     def corpus_meta_df(self) -> pl.DataFrame:

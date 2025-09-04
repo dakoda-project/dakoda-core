@@ -1,16 +1,23 @@
 from dakoda.corpus import DakodaCorpus
+from dakoda.dakoda_metadata_scheme import MetaData
 
 
-def test_document_meta(wtld, test_cas):
-    meta = wtld.document_meta(test_cas)  # TODO: this should be static
+def test_meta(test_cas):
+    meta = MetaData.from_cas(test_cas)
     assert meta.text.text_tokenCount == 243
     assert (
         meta.corpus.administrative.corpus_admin_acronym == "ComiGs"
     )  # FIXME: This should probably not be correct?
 
 
-def test_document_meta_df(comigs, test_cas):
-    df = comigs.document_meta_df(test_cas)
+def test_document_meta(test_corpus):
+    doc = test_corpus[0]
+    meta = test_corpus.document_meta(doc)
+
+
+def test_document_meta_df(comigs):
+    doc = comigs[-1]
+    df = comigs.document_meta_df(doc)
     assert not df.is_empty()
 
 
