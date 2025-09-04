@@ -1,5 +1,5 @@
 from dakoda.corpus import DakodaCorpus
-from dakoda.dakoda_metadata_scheme import MetaData
+from dakoda.metadata import MetaData
 
 
 def test_meta(test_cas):

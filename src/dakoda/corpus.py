@@ -7,7 +7,7 @@ from typing import Iterator
 import polars as pl
 from cassis import Cas
 
-from dakoda.dakoda_metadata_scheme import MetaData
+from dakoda.metadata import MetaData
 from dakoda.util import load_cas_from_file, load_dakoda_typesystem
 
 

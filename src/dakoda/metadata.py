@@ -13,16 +13,14 @@ from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.models.datatype import XmlDate, XmlPeriod
 
-# TODO: move here
-from dakoda.dakoda_types import T_META
+from dakoda.types import T_META
 from dakoda.util import enum_from_file
 
-
 # To prevent extremely long enums in code, enum values have been moved to resources
-_type_mappings_dir = files('dakoda.res.type_mappings')
+_type_mappings_dir = files("dakoda.res.type_mappings")
 
 
-@enum_from_file(_type_mappings_dir.joinpath('LanguageCode.csv'))
+@enum_from_file(_type_mappings_dir.joinpath("LanguageCode.csv"))
 class LanguageCode(Enum):
     """Three letter language codes.
 
@@ -37,25 +35,26 @@ class LanguageCode(Enum):
         >>> CountryType.DEU == CountryType('deu')
         True
     """
+
     pass
 
 
-@enum_from_file(_type_mappings_dir.joinpath('LanguageGroup.csv'))
+@enum_from_file(_type_mappings_dir.joinpath("LanguageGroup.csv"))
 class LanguageGroup(Enum):
     pass
 
 
-@enum_from_file(_type_mappings_dir.joinpath('LanguageNameDe.csv'))
+@enum_from_file(_type_mappings_dir.joinpath("LanguageNameDe.csv"))
 class LanguageNameDe(Enum):
     pass
 
 
-@enum_from_file(_type_mappings_dir.joinpath('LanguageNameEn.csv'))
+@enum_from_file(_type_mappings_dir.joinpath("LanguageNameEn.csv"))
 class LanguageNameEn(Enum):
     pass
 
 
-@enum_from_file(_type_mappings_dir.joinpath('CountryType.csv'))
+@enum_from_file(_type_mappings_dir.joinpath("CountryType.csv"))
 class CountryType(Enum):
     """
     Three-letter country codes defined in ISO 3166-1.
@@ -70,17 +69,21 @@ class CountryType(Enum):
         >>> CountryType.DEU == 'deu'
         False
     """
+
     pass
 
-@enum_from_file(_type_mappings_dir.joinpath('CountryTypeOrNa.csv'))
+
+@enum_from_file(_type_mappings_dir.joinpath("CountryTypeOrNa.csv"))
 class CountryTypeOrNa(Enum):
     """
     A country specified as COUNTRY_TYPE or a string indicating that no value is
     available.
     """
+
     pass
 
-@enum_from_file(_type_mappings_dir.joinpath('DkdTrgLang.csv'))
+
+@enum_from_file(_type_mappings_dir.joinpath("DkdTrgLang.csv"))
 class DkdTrgLang(Enum):
     pass
 
@@ -90,6 +93,7 @@ class CoarseCefrLevel(Enum):
 
     The A1 and A2 are merged. The same goes for the B and C levels.
     """
+
     A = "A"
     B = "B"
     C = "C"
@@ -107,6 +111,7 @@ class CorpusAvailabilityType(Enum):
     :cvar OPEN: open; all CC-licenses
     :cvar NOT_AVAILABLE: information is not available
     """
+
     CLOSED = "closed"
     RESTRICTED = "restricted"
     SPECIAL_RESTRICTIONS = "special restrictions"
@@ -2810,4 +2815,3 @@ def traverse_complex(
                         yield (key, value)
             else:
                 yield (field.name, field_value)
-
