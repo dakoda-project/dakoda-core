@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 from dataclasses import dataclass, field, fields, is_dataclass
 from decimal import Decimal
@@ -5,22 +7,82 @@ from enum import Enum
 from typing import List, Optional, Union, Any, Generator, Tuple
 
 import polars as pl
+from importlib_resources import files
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.models.datatype import XmlDate, XmlPeriod
 
-from dakoda.countries import CountryType
+# TODO: move here
 from dakoda.dakoda_types import T_META
-from dakoda.languages import (
-    LanguageCode,
-    LanguageGroup,
-    LanguageNameDe,
-    LanguageNameEn,
-)
+from dakoda.util import enum_from_file
 
 
-# TODO: separate types and api
+# To prevent extremely long enums in code, enum values have been moved to resources
+_type_mappings_dir = files('dakoda.res.type_mappings')
+
+
+@enum_from_file(_type_mappings_dir.joinpath('LanguageCode.csv'))
+class LanguageCode(Enum):
+    """Three letter language codes.
+
+    Attributes are Uppercased, values lowercased.
+
+    Examples:
+        >>> from dakoda.languages import LanguageCode
+        >>> LanguageCode.DEU.value == 'deu'
+        True
+        >>> CountryType.DEU == 'DEU'
+        False
+        >>> CountryType.DEU == CountryType('deu')
+        True
+    """
+    pass
+
+
+@enum_from_file(_type_mappings_dir.joinpath('LanguageGroup.csv'))
+class LanguageGroup(Enum):
+    pass
+
+
+@enum_from_file(_type_mappings_dir.joinpath('LanguageNameDe.csv'))
+class LanguageNameDe(Enum):
+    pass
+
+
+@enum_from_file(_type_mappings_dir.joinpath('LanguageNameEn.csv'))
+class LanguageNameEn(Enum):
+    pass
+
+
+@enum_from_file(_type_mappings_dir.joinpath('CountryType.csv'))
+class CountryType(Enum):
+    """
+    Three-letter country codes defined in ISO 3166-1.
+    Attributes are Uppercased.
+
+    Examples:
+        >>> from dakoda.countries import CountryType
+        >>> CountryType.DEU.value == 'DEU'
+        True
+        >>> CountryType.DEU == CountryType('DEU')
+        True
+        >>> CountryType.DEU == 'deu'
+        False
+    """
+    pass
+
+@enum_from_file(_type_mappings_dir.joinpath('CountryTypeOrNa.csv'))
+class CountryTypeOrNa(Enum):
+    """
+    A country specified as COUNTRY_TYPE or a string indicating that no value is
+    available.
+    """
+    pass
+
+@enum_from_file(_type_mappings_dir.joinpath('DkdTrgLang.csv'))
+class DkdTrgLang(Enum):
+    pass
 
 
 class CoarseCefrLevel(Enum):
@@ -28,7 +90,6 @@ class CoarseCefrLevel(Enum):
 
     The A1 and A2 are merged. The same goes for the B and C levels.
     """
-
     A = "A"
     B = "B"
     C = "C"
@@ -46,7 +107,6 @@ class CorpusAvailabilityType(Enum):
     :cvar OPEN: open; all CC-licenses
     :cvar NOT_AVAILABLE: information is not available
     """
-
     CLOSED = "closed"
     RESTRICTED = "restricted"
     SPECIAL_RESTRICTIONS = "special restrictions"
@@ -63,265 +123,6 @@ class CorpusGroup(Enum):
     FD_LEX = "FD-Lex"
     HA_MA_TA_C = "HaMaTaC"
     HA_MO_TI_C = "HaMoTiC"
-    NOT_APPLICABLE = "notApplicable"
-
-
-class CountryTypeOrNa(Enum):
-    """
-    A country specified as COUNTRY_TYPE or a string indicating that no value is
-    available.
-    """
-
-    NOT_AVAILABLE = "notAvailable"
-    AFG = "AFG"
-    ALA = "ALA"
-    ALB = "ALB"
-    DZA = "DZA"
-    ASM = "ASM"
-    AND = "AND"
-    AGO = "AGO"
-    AIA = "AIA"
-    ATA = "ATA"
-    ATG = "ATG"
-    ARG = "ARG"
-    ARM = "ARM"
-    ABW = "ABW"
-    AUS = "AUS"
-    AUT = "AUT"
-    AZE = "AZE"
-    BHS = "BHS"
-    BHR = "BHR"
-    BGD = "BGD"
-    BRB = "BRB"
-    BLR = "BLR"
-    BEL = "BEL"
-    BLZ = "BLZ"
-    BEN = "BEN"
-    BMU = "BMU"
-    BTN = "BTN"
-    BOL = "BOL"
-    BES = "BES"
-    BIH = "BIH"
-    BWA = "BWA"
-    BVT = "BVT"
-    BRA = "BRA"
-    IOT = "IOT"
-    BRN = "BRN"
-    BGR = "BGR"
-    BFA = "BFA"
-    BDI = "BDI"
-    CPV = "CPV"
-    KHM = "KHM"
-    CMR = "CMR"
-    CAN = "CAN"
-    CYM = "CYM"
-    CAF = "CAF"
-    TCD = "TCD"
-    CHL = "CHL"
-    CHN = "CHN"
-    CXR = "CXR"
-    CCK = "CCK"
-    COL = "COL"
-    COM = "COM"
-    COG = "COG"
-    COD = "COD"
-    COK = "COK"
-    CRI = "CRI"
-    CIV = "CIV"
-    HRV = "HRV"
-    CUB = "CUB"
-    CUW = "CUW"
-    CYP = "CYP"
-    CZE = "CZE"
-    DNK = "DNK"
-    DJI = "DJI"
-    DMA = "DMA"
-    DOM = "DOM"
-    ECU = "ECU"
-    EGY = "EGY"
-    SLV = "SLV"
-    GNQ = "GNQ"
-    ERI = "ERI"
-    EST = "EST"
-    SWZ = "SWZ"
-    ETH = "ETH"
-    FLK = "FLK"
-    FRO = "FRO"
-    FJI = "FJI"
-    FIN = "FIN"
-    FRA = "FRA"
-    GUF = "GUF"
-    PYF = "PYF"
-    ATF = "ATF"
-    GAB = "GAB"
-    GMB = "GMB"
-    GEO = "GEO"
-    DEU = "DEU"
-    GHA = "GHA"
-    GIB = "GIB"
-    GRC = "GRC"
-    GRL = "GRL"
-    GRD = "GRD"
-    GLP = "GLP"
-    GUM = "GUM"
-    GTM = "GTM"
-    GGY = "GGY"
-    GIN = "GIN"
-    GNB = "GNB"
-    GUY = "GUY"
-    HTI = "HTI"
-    HMD = "HMD"
-    VAT = "VAT"
-    HND = "HND"
-    HKG = "HKG"
-    HUN = "HUN"
-    ISL = "ISL"
-    IND = "IND"
-    IDN = "IDN"
-    IRN = "IRN"
-    IRQ = "IRQ"
-    IRL = "IRL"
-    IMN = "IMN"
-    ISR = "ISR"
-    ITA = "ITA"
-    JAM = "JAM"
-    JPN = "JPN"
-    JEY = "JEY"
-    JOR = "JOR"
-    KAZ = "KAZ"
-    KEN = "KEN"
-    KIR = "KIR"
-    PRK = "PRK"
-    KOR = "KOR"
-    KWT = "KWT"
-    KGZ = "KGZ"
-    LAO = "LAO"
-    LVA = "LVA"
-    LBN = "LBN"
-    LSO = "LSO"
-    LBR = "LBR"
-    LBY = "LBY"
-    LIE = "LIE"
-    LTU = "LTU"
-    LUX = "LUX"
-    MAC = "MAC"
-    MDG = "MDG"
-    MWI = "MWI"
-    MYS = "MYS"
-    MDV = "MDV"
-    MLI = "MLI"
-    MLT = "MLT"
-    MHL = "MHL"
-    MTQ = "MTQ"
-    MRT = "MRT"
-    MUS = "MUS"
-    MYT = "MYT"
-    MEX = "MEX"
-    FSM = "FSM"
-    MDA = "MDA"
-    MCO = "MCO"
-    MNG = "MNG"
-    MNE = "MNE"
-    MSR = "MSR"
-    MAR = "MAR"
-    MOZ = "MOZ"
-    MMR = "MMR"
-    NAM = "NAM"
-    NRU = "NRU"
-    NPL = "NPL"
-    NLD = "NLD"
-    NCL = "NCL"
-    NZL = "NZL"
-    NIC = "NIC"
-    NER = "NER"
-    NGA = "NGA"
-    NIU = "NIU"
-    NFK = "NFK"
-    MKD = "MKD"
-    MNP = "MNP"
-    NOR = "NOR"
-    OMN = "OMN"
-    PAK = "PAK"
-    PLW = "PLW"
-    PSE = "PSE"
-    PAN = "PAN"
-    PNG = "PNG"
-    PRY = "PRY"
-    PER = "PER"
-    PHL = "PHL"
-    PCN = "PCN"
-    POL = "POL"
-    PRT = "PRT"
-    PRI = "PRI"
-    QAT = "QAT"
-    REU = "REU"
-    ROU = "ROU"
-    RUS = "RUS"
-    RWA = "RWA"
-    BLM = "BLM"
-    SHN = "SHN"
-    KNA = "KNA"
-    LCA = "LCA"
-    MAF = "MAF"
-    SPM = "SPM"
-    VCT = "VCT"
-    WSM = "WSM"
-    SMR = "SMR"
-    STP = "STP"
-    SAU = "SAU"
-    SEN = "SEN"
-    SRB = "SRB"
-    SYC = "SYC"
-    SLE = "SLE"
-    SGP = "SGP"
-    SXM = "SXM"
-    SVK = "SVK"
-    SVN = "SVN"
-    SLB = "SLB"
-    SOM = "SOM"
-    ZAF = "ZAF"
-    SGS = "SGS"
-    SSD = "SSD"
-    ESP = "ESP"
-    LKA = "LKA"
-    SDN = "SDN"
-    SUR = "SUR"
-    SJM = "SJM"
-    SWE = "SWE"
-    CHE = "CHE"
-    SYR = "SYR"
-    TWN = "TWN"
-    TJK = "TJK"
-    TZA = "TZA"
-    THA = "THA"
-    TLS = "TLS"
-    TGO = "TGO"
-    TKL = "TKL"
-    TON = "TON"
-    TTO = "TTO"
-    TUN = "TUN"
-    TUR = "TUR"
-    TKM = "TKM"
-    TCA = "TCA"
-    TUV = "TUV"
-    UGA = "UGA"
-    UKR = "UKR"
-    ARE = "ARE"
-    GBR = "GBR"
-    USA = "USA"
-    UMI = "UMI"
-    URY = "URY"
-    UZB = "UZB"
-    VUT = "VUT"
-    VEN = "VEN"
-    VNM = "VNM"
-    VGB = "VGB"
-    VIR = "VIR"
-    WLF = "WLF"
-    ESH = "ESH"
-    YEM = "YEM"
-    ZMB = "ZMB"
-    ZWE = "ZWE"
     NOT_APPLICABLE = "notApplicable"
 
 
@@ -417,126 +218,6 @@ class DkdProjectType(Enum):
     BUNDESMINISTERIUM_F_R_BILDUNG_UND_FORSCHUNG_BMBF = (
         "Bundesministerium für Bildung und Forschung (BMBF)"
     )
-
-
-class DkdTrgLang(Enum):
-    ARC = "arc"
-    KUR = "kur"
-    PES = "pes"
-    AZE = "aze"
-    BEN = "ben"
-    EUS = "eus"
-    HIN = "hin"
-    JPN = "jpn"
-    KAT = "kat"
-    KOR = "kor"
-    NEP = "nep"
-    TAM = "tam"
-    TAT = "tat"
-    TGK = "tgk"
-    TUR = "tur"
-    URD = "urd"
-    UZB = "uzb"
-    PAN = "pan"
-    FAS = "fas"
-    DEU = "deu"
-    HUN = "hun"
-    NLD = "nld"
-    BOS = "bos"
-    SCC = "scc"
-    HRV = "hrv"
-    HEB = "heb"
-    ZHO = "zho"
-    BUL = "bul"
-    CAT = "cat"
-    CES = "ces"
-    DAN = "dan"
-    ENG = "eng"
-    EWE = "ewe"
-    FIN = "fin"
-    FRA = "fra"
-    GAA = "gaa"
-    IND = "ind"
-    ISL = "isl"
-    ITA = "ita"
-    KIK = "kik"
-    LAV = "lav"
-    LIT = "lit"
-    LUB = "lub"
-    NOR = "nor"
-    POL = "pol"
-    POR = "por"
-    RON = "ron"
-    RUS = "rus"
-    SLV = "slv"
-    SME = "sme"
-    SNA = "sna"
-    SPA = "spa"
-    SQI = "sqi"
-    ALB = "alb"
-    SWA = "swa"
-    SWE = "swe"
-    THA = "tha"
-    UKR = "ukr"
-    VIE = "vie"
-    XHO = "xho"
-    YOR = "yor"
-    YUE = "yue"
-    MKD = "mkd"
-    HBS = "hbs"
-    CMN = "cmn"
-    ELL = "ell"
-    GRE = "gre"
-    AFR = "afr"
-    ALQ = "alq"
-    ANG = "ang"
-    BAK = "bak"
-    BEW = "bew"
-    BFI = "bfi"
-    CMA = "cma"
-    EBU = "ebu"
-    GLG = "glg"
-    GRC = "grc"
-    HBO = "hbo"
-    III = "iii"
-    KAZ = "kaz"
-    KIR = "kir"
-    KUA = "kua"
-    LAT = "lat"
-    LUY = "luy"
-    MAI = "mai"
-    MON = "mon"
-    BAI = "bai"
-    NAP = "nap"
-    NON = "non"
-    NYF = "nyf"
-    ROH = "roh"
-    SLK = "slk"
-    SVE = "sve"
-    TWI = "twi"
-    TZM = "tzm"
-    YID = "yid"
-    EPO = "epo"
-    KYE = "kye"
-    LTZ = "ltz"
-    GER = "ger"
-    JBE = "jbe"
-    ARA = "ara"
-    HYE = "hye"
-    MLY = "mly"
-    KAL = "kal"
-    NDE = "nde"
-    PST = "pst"
-    PRS = "prs"
-    BEL = "bel"
-    CYM = "cym"
-    GLE = "gle"
-    ARB = "arb"
-    PRD = "prd"
-    NAN = "nan"
-    PAT = "pat"
-    EWA = "ewa"
-    ROU = "rou"
 
 
 class EducationalStage(Enum):
@@ -3129,3 +2810,4 @@ def traverse_complex(
                         yield (key, value)
             else:
                 yield (field.name, field_value)
+
