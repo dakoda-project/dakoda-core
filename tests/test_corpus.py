@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from cassis import Cas
+from dakoda.corpus import DakodaDocument
 
 
 def test_load_corpus(wtld):
@@ -20,13 +20,18 @@ def test_files(wtld):
 def test_docs(comigs):
     assert sum(1 for i in itertools.islice(comigs.docs, 5)) == 5
 
+    assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs, 5))
+    assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs.docs, 5))
+
 
 def test_subscript_access(comigs):
     # select by index
     first_doc = comigs[0]
     last_doc = comigs[-1]
-    assert isinstance(first_doc, Cas)
-    assert isinstance(last_doc, Cas)
+    assert isinstance(first_doc, DakodaDocument)
+    assert first_doc.id == '2mVs_1'
+    assert first_doc.corpus == comigs
+    assert isinstance(last_doc, DakodaDocument)
 
     # select by slice
     n_docs = len(comigs)
@@ -37,14 +42,14 @@ def test_subscript_access(comigs):
     # select by path
     path = random.choice(comigs.document_paths)
     doc = comigs[path]
-    assert isinstance(doc, Cas)
+    assert isinstance(doc, DakodaDocument)
 
     # select by id
     doc = comigs['bThN_2']
-    assert isinstance(doc, Cas)
+    assert isinstance(doc, DakodaDocument)
 
     doc = comigs['bThN_2.xmi']
-    assert isinstance(doc, Cas)
+    assert isinstance(doc, DakodaDocument)
 
     with pytest.raises(FileNotFoundError):
         comigs['doesnotexist.xmi']
@@ -52,8 +57,24 @@ def test_subscript_access(comigs):
 # as this will return a different document from the corpus every time the test is called
 # it introduces an implicit check for no document in the test corpus having document size == 0
 def test_random_doc(wtld, empty_corpus):
-    cas = wtld.random_doc()
-    assert len(cas.sofa_string) > 0
+    doc = wtld.random_doc()
+    assert len(doc.text) > 0
 
     with pytest.raises(ValueError):
         empty_corpus.random_doc()
+
+
+def test_document(test_cas, comigs):
+    # create with external reference
+    doc = DakodaDocument(
+        cas=test_cas,
+        id='TestDOC_27921',
+        corpus=comigs,
+    )
+
+    # cas only
+    doc = DakodaDocument(
+        cas=test_cas,
+    )
+    assert len(doc.text) != 0
+

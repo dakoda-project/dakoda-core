@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import io
 import random
 from pathlib import Path
+from typing import Iterator
 
 import polars as pl
 from cassis import Cas
@@ -14,13 +17,29 @@ from dakoda.util import load_cas_from_file, load_dakoda_typesystem
 from dakoda.util import traverse_complex
 
 
+class DakodaDocument:
+    def __init__(self, cas: Cas, id: str | None = None, corpus: DakodaCorpus | None = None):
+        self.cas = cas
+        self.id = id
+        self.corpus = corpus
+
+    @property
+    def text(self) -> str:
+        return self.cas.sofa_string
+
+
 class DakodaCorpus:
+    ts = load_dakoda_typesystem()
+
     def __init__(self, path):
         self.path = Path(path)
         self.name = self.path.stem
         self.document_paths = [p for p in self.path.glob("*.xmi")]
-        self.ts = load_dakoda_typesystem()
-        self.json_parser = JsonParser(context=XmlContext(), config=ParserConfig()) # this should be static, I suppose?
+        self.document_paths.sort()
+
+        self.json_parser = JsonParser(
+            context=XmlContext(), config=ParserConfig()
+        )  #TODO: Move this to MetaData this should be static, I suppose?
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -38,7 +57,7 @@ class DakodaCorpus:
 
     def __iter__(self):
         for xmi in self.document_paths:
-            yield load_cas_from_file(xmi, self.ts)
+            yield self[xmi]
 
     def __getitem__(self, key):
         # TODO: Logical Indexing, list indexing
@@ -51,19 +70,20 @@ class DakodaCorpus:
         else:
             raise KeyError(f"Invalid key type: {type(key)}")
 
-    def _get_by_path(self, path: str | Path) -> Cas:
+    def _get_by_path(self, path: str | Path) -> DakodaDocument:
         path = Path(path)
 
         if path.is_file():
-            return load_cas_from_file(path, self.ts)
+            cas = load_cas_from_file(path, self.ts)
+        else:
+            cas = load_cas_from_file(self.path / (path.stem + ".xmi"), self.ts)
 
-        # cases that do not point to a file, like a filename or just the id (file stem)
-        return load_cas_from_file(self.path / (path.stem + '.xmi'), self.ts)
+        return DakodaDocument(cas, id=path.stem, corpus=self)
 
-    def _get_by_index(self, index: int) -> Cas:
+    def _get_by_index(self, index: int) -> DakodaDocument:
         return self._get_by_path(self.document_paths[index])
 
-    def _get_by_slice(self, indices_slice: slice):
+    def _get_by_slice(self, indices_slice: slice) -> Iterator[DakodaDocument]:
         start, stop, step = indices_slice.indices(len(self))
         return (self._get_by_index(i) for i in range(start, stop, step))
 
@@ -75,7 +95,7 @@ class DakodaCorpus:
     def docs(self):
         return iter(self)
 
-    def random_doc(self) -> Cas:
+    def random_doc(self) -> DakodaDocument:
         """Return a random document from the corpus."""
         if not self.document_paths:
             raise ValueError("No documents in the corpus.")
@@ -84,6 +104,7 @@ class DakodaCorpus:
         return self._get_by_path(xmi)
 
     # TODO: Should be classmethod, potentiall even on MetaData? MetaData.from_cas(doc)
+    # TODO: The Cas needs abstration. Document. Document.meta --> MetaData
     # this method can remain as a convenience method.
     def document_meta(self, doc: Cas) -> MetaData:
         """Return the metadata of the given document."""
@@ -133,7 +154,7 @@ def _is_cached(corpus: DakodaCorpus) -> bool:
 
 
 def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
-    cache_dir = Path(".meta_cache") # TODO: constant, configurable via .env
+    cache_dir = Path(".meta_cache")  # TODO: constant, configurable via .env
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache = cache_dir / corpus.name
     df.write_csv(cache)
