@@ -114,11 +114,10 @@ class DakodaCorpus:
         xmi = random.choice(self.document_paths)
         return self._get_by_path(xmi)
 
-    @property
-    def corpus_meta_df(self) -> pl.DataFrame:
+    def generate_corpus_meta_df(self, use_cached=True) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
 
-        if _is_cached(self):
+        if use_cached and _is_cached(self):
             return _read_meta_cache(self)
 
         data = []

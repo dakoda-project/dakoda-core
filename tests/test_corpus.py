@@ -83,3 +83,14 @@ def test_document(test_cas, comigs):
         cas=test_cas,
     )
     assert len(doc.text) != 0
+
+
+def test_document_meta_df(comigs):
+    doc = comigs[-1]
+    df = comigs.document_meta_df(doc)
+    assert not df.is_empty()
+
+
+def test_corpus_meta_df(comigs):
+    df = comigs.generate_corpus_meta_df()
+    assert not df.is_empty()
