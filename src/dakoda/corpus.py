@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from pathlib import Path
 from typing import Iterator
+from collections.abc import Iterable
 
 import polars as pl
 from cassis import Cas
@@ -66,14 +67,17 @@ class DakodaCorpus:
             yield self[xmi]
 
     def __getitem__(self, key):
-        # TODO: Logical Indexing, list indexing
         # TODO: Querying Corpus
+        # TODO: Logical Indexing, list indexing
+
         if isinstance(key, str) or isinstance(key, Path):
             return self._get_by_path(key)
         elif isinstance(key, int):
             return self._get_by_index(key)
         elif isinstance(key, slice):
             return self._get_by_slice(key)
+        elif isinstance(key, Iterable):
+            return (self.__getitem__(k) for k in key)
         else:
             raise KeyError(f"Invalid key type: {type(key)}")
 
@@ -127,7 +131,7 @@ class DakodaCorpus:
         return df_all
 
 
-# TODO: instance method
+# TODO: instance method / own class
 def _is_cached(corpus: DakodaCorpus) -> bool:
     cache = Path(".meta_cache") / corpus.name
     cache.with_suffix(".csv")
@@ -135,7 +139,7 @@ def _is_cached(corpus: DakodaCorpus) -> bool:
 
 
 def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
-    cache_dir = Path(".meta_cache")  # TODO: constant, configurable via .env
+    cache_dir = Path(".meta_cache")  # TODO: constant, configurable via .env / config.py?
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache = cache_dir / corpus.name
     df.write_csv(cache)

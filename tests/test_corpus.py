@@ -56,9 +56,12 @@ def test_subscript_access(comigs):
     with pytest.raises(FileNotFoundError):
         comigs["doesnotexist.xmi"]
 
+    # select by iterable
+    idxs = [0, 3, 8]
+    docs = list(comigs[idxs])
+    assert all(isinstance(doc, DakodaDocument) for doc in docs)
 
-# as this will return a different document from the corpus every time the test is called
-# it introduces an implicit check for no document in the test corpus having document size == 0
+
 def test_random_doc(wtld, empty_corpus):
     doc = wtld.random_doc()
     assert len(doc.text) > 0
