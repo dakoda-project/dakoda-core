@@ -47,6 +47,7 @@ class DakodaCorpus:
         self.name = self.path.stem
         self.document_paths = [p for p in self.path.glob("*.xmi")]
         self.document_paths.sort()
+        self._cache = CorpusMetaCache(self)
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -117,8 +118,8 @@ class DakodaCorpus:
     def generate_corpus_meta_df(self, use_cached=True) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
 
-        if use_cached and _is_cached(self):
-            return _read_meta_cache(self)
+        if use_cached and self._cache.is_empty():
+            return self._cache.read()
 
         data = []
         for doc in self.docs:
@@ -126,25 +127,30 @@ class DakodaCorpus:
             data.append(df)
 
         df_all = pl.concat(data, how="vertical")
-        _write_meta_cache(self, df_all)
+        self._cache.write(df_all)
         return df_all
 
+# TODO: cache_dir constant, configurable via .env / config.py?
+class CorpusMetaCache:
+    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path='.meta_cache'):
+        self.corpus = corpus
+        self.cache_dir = Path(cache_dir)
 
-# TODO: instance method / own class
-def _is_cached(corpus: DakodaCorpus) -> bool:
-    cache = Path(".meta_cache") / corpus.name
-    cache.with_suffix(".csv")
-    return cache.is_file()
+    @property
+    def cache_file(self):
+        return (self.cache_dir / self.corpus.name).with_suffix('.csv')
 
+    def is_empty(self) -> bool:
+        return self.cache_file.exists()
 
-def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
-    cache_dir = Path(".meta_cache")  # TODO: constant, configurable via .env / config.py?
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache = cache_dir / corpus.name
-    df.write_csv(cache)
-    return True
+    def write(self, df: pl.DataFrame) -> bool:
+        cache_dir = self.cache_dir
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        df.write_csv(self.cache_file)
+        return True
 
+    def read(self) -> pl.DataFrame:
+        return pl.read_csv(self.cache_file)
 
-def _read_meta_cache(corpus: DakodaCorpus) -> pl.DataFrame:
-    cache = Path(".meta_cache") / corpus.name
-    return pl.read_csv(cache)
+    def clear(self):
+        self.cache_file.unlink(missing_ok=True)
