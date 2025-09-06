@@ -42,12 +42,14 @@ class DakodaCorpus:
 
     ts = load_dakoda_typesystem()
 
-    def __init__(self, path):
+    def __init__(self, path, cache: CorpusMetaCache | None=None):
         self.path = Path(path)
         self.name = self.path.stem
-        self.document_paths = [p for p in self.path.glob("*.xmi")]
+        self.document_paths = list(self.path.glob("*.xmi"))
         self.document_paths.sort()
-        self._cache = CorpusMetaCache(self)
+        if cache is None:
+            cache = CorpusMetaCache(self)
+        self._cache = cache
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -119,12 +121,12 @@ class DakodaCorpus:
         """Return a DataFrame with metadata for the whole corpus."""
 
         if use_cached and self._cache.is_empty():
-            return self._cache.read()
+            try:
+                return self._cache.read()
+            except Exception:
+                pass # fallback to uncached path
 
-        data = []
-        for doc in self.docs:
-            df = self.document_meta_df(doc)
-            data.append(df)
+        data = [doc.meta.to_df() for doc in self.docs]
 
         df_all = pl.concat(data, how="vertical")
         self._cache.write(df_all)
@@ -136,6 +138,7 @@ class CorpusMetaCache:
         self.corpus = corpus
         self.cache_dir = Path(cache_dir)
 
+    # todo: might need a rework with filtered views and subsets and whatnot. probably hashing the document paths is a good idea
     @property
     def cache_file(self):
         return (self.cache_dir / self.corpus.name).with_suffix('.csv')
