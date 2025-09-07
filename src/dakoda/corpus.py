@@ -42,7 +42,7 @@ class DakodaCorpus:
 
     ts = load_dakoda_typesystem()
 
-    def __init__(self, path, cache: CorpusMetaCache | None=None):
+    def __init__(self, path, cache: CorpusMetaCache | None = None):
         self.path = Path(path)
         self.name = self.path.stem
         self.document_paths = list(self.path.glob("*.xmi"))
@@ -123,7 +123,7 @@ class DakodaCorpus:
             try:
                 return self._cache.read()
             except Exception:
-                pass # fallback to uncached path
+                pass  # fallback to uncached path
 
         # fixme: there would be a cleaner way using to_dict, but that gives errors, due to the enums used. enum values?
         # fixme: there is no id given for each doc, makes filtering reliant on order of documents
@@ -133,16 +133,17 @@ class DakodaCorpus:
         self._cache.write(df_all)
         return df_all
 
+
 # TODO: cache_dir constant, configurable via .env / config.py?
 class CorpusMetaCache:
-    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path='.meta_cache'):
+    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path = ".meta_cache"):
         self.corpus = corpus
         self.cache_dir = Path(cache_dir)
 
     # todo: might need a rework with filtered views and subsets and whatnot. probably hashing the document paths is a good idea
     @property
     def cache_file(self):
-        return (self.cache_dir / self.corpus.name).with_suffix('.csv')
+        return (self.cache_dir / self.corpus.name).with_suffix(".csv")
 
     def is_empty(self) -> bool:
         return self.cache_file.exists()

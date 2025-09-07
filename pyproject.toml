@@ -8,16 +8,18 @@ authors = [
 ]
 readme = "README.md"
 packages = [
-    { include = "dakoda", from="src"},
-    { include = "dakoda_typesystem.xml", from = "src/dakoda/res" }
+    { include = "dakoda", from="src"}
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.11"
 polars = ">=1.30.0,<2.0.0"
 dkpro-cassis = ">=0.10.1,<1.0.0"
-pytest = ">=8.4.0,<9.0.0"
 xsdata = "22.12"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+pytest = ">=8.4.0,<9.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
