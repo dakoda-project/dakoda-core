@@ -2265,7 +2265,7 @@ def _traverse_dataclass_fields(obj: Any, depth: int = 0) -> Iterator[Tuple[str, 
                 if is_dataclass(item):
                     yield from _traverse_dataclass_fields(item, depth + 3)
                 else:
-                    yield (field.name, item)
+                    yield (f'{field.name}___{i}', item)
         elif isinstance(field_value, dict):
             for key, value in field_value.items():
                 if is_dataclass(value):
@@ -2298,9 +2298,9 @@ class MetaData(DocumentType):
     def __iter__(self) -> Iterator[Tuple[str, Any]]:
         return _traverse_dataclass_fields(self)
 
-    def to_df(self):
-        meta_dict = {}
-        for key, value in self:
-            meta_dict[key] = value
+    def to_dict(self):
+        return dict(self)
 
+    def to_df(self):
+        meta_dict = self.to_dict()
         return pl.DataFrame(meta_dict)

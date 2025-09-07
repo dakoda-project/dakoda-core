@@ -50,6 +50,7 @@ class DakodaCorpus:
         if cache is None:
             cache = CorpusMetaCache(self)
         self._cache = cache
+        self._cache.corpus = self
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -71,8 +72,6 @@ class DakodaCorpus:
 
     def __getitem__(self, key):
         # TODO: Querying Corpus
-        # TODO: Logical Indexing, list indexing
-
         if isinstance(key, str) or isinstance(key, Path):
             return self._get_by_path(key)
         elif isinstance(key, int):
@@ -126,6 +125,8 @@ class DakodaCorpus:
             except Exception:
                 pass # fallback to uncached path
 
+        # fixme: there would be a cleaner way using to_dict, but that gives errors, due to the enums used. enum values?
+        # fixme: there is no id given for each doc, makes filtering reliant on order of documents
         data = [doc.meta.to_df() for doc in self.docs]
 
         df_all = pl.concat(data, how="vertical")
