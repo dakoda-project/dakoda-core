@@ -1,28 +1,96 @@
-import pytest
 import itertools
-from dakoda_fixtures import *
-from dakoda.corpus import DakodaCorpus
+import random
 
-def test_load_corpus():
-    wtld = DakodaCorpus("data/WTLD")
+import pytest
+
+from dakoda.corpus import DakodaDocument
+
+
+def test_load_corpus(wtld):
     assert wtld.name == "WTLD"
+    assert len(wtld) > 0
 
-def test_files():
-    # TODO use fixture
-    wtld = DakodaCorpus("data/ComiGs")
-    docs = wtld.documents
-    assert len(docs) == 70
-    for doc in docs:
-        assert doc.suffix == ".xmi"
-        assert doc.is_file()
 
-def test_docs():
-    # TODO use fixture
-    wtld = DakodaCorpus("data/ComiGs")
-    assert sum(1 for i in itertools.islice(wtld.docs(), 5)) == 5
+def test_files(wtld):
+    docs = wtld.document_paths
+    assert len(docs) == len(wtld)
+    assert all(doc.is_file() and doc.suffix == ".xmi" for doc in docs)
 
-# as this will return a different document from the corpus every time the test is called
-# it introduces an implicit check for no document in the test corpus having document size == 0
-def test_random_doc(test_corpus):
-    cas = test_corpus.random_doc()
-    assert len(cas.sofa_string) > 0
+
+def test_docs(comigs):
+    assert sum(1 for i in itertools.islice(comigs.docs, 5)) == 5
+
+    assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs, 5))
+    assert all(
+        isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs.docs, 5)
+    )
+
+
+def test_subscript_access(comigs):
+    # select by index
+    first_doc = comigs[0]
+    last_doc = comigs[-1]
+    assert isinstance(first_doc, DakodaDocument)
+    assert first_doc.id == "2mVs_1"
+    assert first_doc.corpus == comigs
+    assert isinstance(last_doc, DakodaDocument)
+
+    # select by slice
+    n_docs = len(comigs)
+    i = n_docs // 2
+    multiple_docs = list(comigs[i : i + 2])
+    assert len(multiple_docs) == 2
+
+    # select by path
+    path = random.choice(comigs.document_paths)
+    doc = comigs[path]
+    assert isinstance(doc, DakodaDocument)
+
+    # select by id
+    doc = comigs["bThN_2"]
+    assert isinstance(doc, DakodaDocument)
+
+    doc = comigs["bThN_2.xmi"]
+    assert isinstance(doc, DakodaDocument)
+
+    with pytest.raises(FileNotFoundError):
+        comigs["doesnotexist.xmi"]
+
+    # select by iterable
+    idxs = [0, 3, 8]
+    docs = list(comigs[idxs])
+    assert all(isinstance(doc, DakodaDocument) for doc in docs)
+
+
+def test_random_doc(wtld, empty_corpus):
+    doc = wtld.random_doc()
+    assert len(doc.text) > 0
+
+    with pytest.raises(ValueError):
+        empty_corpus.random_doc()
+
+
+def test_document(test_cas, comigs):
+    # create with external reference
+    doc = DakodaDocument(
+        cas=test_cas,
+        id="TestDOC_27921",
+        corpus=comigs,
+    )
+
+    # cas only
+    doc = DakodaDocument(
+        cas=test_cas,
+    )
+    assert len(doc.text) != 0
+
+
+def test_document_meta_df(comigs):
+    doc = comigs[-1]
+    df = comigs.document_meta_df(doc)
+    assert not df.is_empty()
+
+
+def test_corpus_meta_df(comigs):
+    df = comigs.generate_corpus_meta_df()
+    assert not df.is_empty()

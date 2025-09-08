@@ -1,24 +1,56 @@
+from __future__ import annotations
+
 import random
-import io
-import polars as pl
-from typing import Iterable
 from pathlib import Path
+from typing import Iterator
+from collections.abc import Iterable
+
+import polars as pl
 from cassis import Cas
-from dakoda.util import traverse_dataclass, traverse_complex
-from dakoda.dakoda_types import T_META
-from dakoda.dakoda_metadata_scheme import MetaData
-from dakoda.util import load_cas_from_file, load_dakoda_typesystem
-from xsdata.formats.dataclass.parsers import JsonParser
-from xsdata.formats.dataclass.context import XmlContext
-from xsdata.formats.dataclass.parsers.config import ParserConfig
+
+from dakoda.metadata import MetaData
+from dakoda.uima import load_cas_from_file, load_dakoda_typesystem
+
+
+class DakodaDocument:
+    def __init__(
+        self, cas: Cas, id: str | None = None, corpus: DakodaCorpus | None = None
+    ):
+        self.cas = cas
+        self.id = id
+        self.corpus = corpus
+
+    @property
+    def text(self) -> str:
+        return self.cas.sofa_string
+
+    @property
+    def meta(self) -> MetaData:
+        return MetaData.from_cas(self.cas)
+
 
 class DakodaCorpus:
-    def __init__(self, path):
+    # this method can remain as a convenience method.
+    @staticmethod
+    def document_meta(doc: DakodaDocument) -> MetaData:
+        """Return the metadata of the given document."""
+        return doc.meta
+
+    @staticmethod
+    def document_meta_df(doc: DakodaDocument) -> pl.DataFrame:
+        return doc.meta.to_df()
+
+    ts = load_dakoda_typesystem()
+
+    def __init__(self, path, cache: CorpusMetaCache | None = None):
         self.path = Path(path)
         self.name = self.path.stem
-        self.documents = [p for p in self.path.glob('*.xmi')]
-        self.ts = load_dakoda_typesystem()
-        self.json_parser = JsonParser(context=XmlContext(), config=ParserConfig())
+        self.document_paths = list(self.path.glob("*.xmi"))
+        self.document_paths.sort()
+        if cache is None:
+            cache = CorpusMetaCache(self)
+        self._cache = cache
+        self._cache.corpus = self
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -31,65 +63,99 @@ class DakodaCorpus:
             return False
         return self.name == other.name and self.path == other.path
 
+    def __len__(self):
+        return len(self.document_paths)
+
+    def __iter__(self):
+        for xmi in self.document_paths:
+            yield self[xmi]
+
+    def __getitem__(self, key):
+        # TODO: Querying Corpus
+        if isinstance(key, str) or isinstance(key, Path):
+            return self._get_by_path(key)
+        elif isinstance(key, int):
+            return self._get_by_index(key)
+        elif isinstance(key, slice):
+            return self._get_by_slice(key)
+        elif isinstance(key, Iterable):
+            return (self.__getitem__(k) for k in key)
+        else:
+            raise KeyError(f"Invalid key type: {type(key)}")
+
+    def _get_by_path(self, path: str | Path) -> DakodaDocument:
+        path = Path(path)
+
+        if path.is_file():
+            cas = load_cas_from_file(path, self.ts)
+        else:
+            cas = load_cas_from_file(self.path / (path.stem + ".xmi"), self.ts)
+
+        return DakodaDocument(cas, id=path.stem, corpus=self)
+
+    def _get_by_index(self, index: int) -> DakodaDocument:
+        return self._get_by_path(self.document_paths[index])
+
+    def _get_by_slice(self, indices_slice: slice) -> Iterator[DakodaDocument]:
+        start, stop, step = indices_slice.indices(len(self))
+        return (self._get_by_index(i) for i in range(start, stop, step))
+
+    @property
     def size(self) -> int:
-        return len(self.documents)
+        return len(self)
 
-    def docs(self) -> Iterable[Cas]:
-        for xmi in self.documents:
-            cas = load_cas_from_file(xmi, self.ts)
-            yield cas
+    @property
+    def docs(self):
+        return iter(self)
 
-    def random_doc(self) -> Cas:
+    def random_doc(self) -> DakodaDocument:
         """Return a random document from the corpus."""
-        if not self.documents:
+        if not self.document_paths:
             raise ValueError("No documents in the corpus.")
-        xmi = random.choice(self.documents)
-        return load_cas_from_file(xmi, self.ts)
-    
-    def document_meta(self, doc: Cas) -> MetaData:
-        """Return the metadata of the given document."""
-        for meta in doc.select(T_META):
-            if meta.get('key') == "structured_metadata":
-                metadata_json_string = meta.get('value')
-                document = self.json_parser.parse(io.StringIO(metadata_json_string), MetaData)
-                return document
-        
-        raise ValueError("No structured metadata found in the document.")
-    
-    def document_meta_df(self, doc: Cas) -> pl.DataFrame:
-        meta_dict = {}
-        meta = self.document_meta(doc)
 
-        for key, value in traverse_complex(meta):
-            meta_dict[key] = value
+        xmi = random.choice(self.document_paths)
+        return self._get_by_path(xmi)
 
-        return pl.DataFrame(meta_dict)
-        
-    def corpus_meta_df(self) -> pl.DataFrame:
+    def generate_corpus_meta_df(self, use_cached=True) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
-        
-        if _is_cached(self):
-            return _read_meta_cache(self)
-        
-        data = []
-        for doc in self.docs():
-            df = self.document_meta_df(doc)
-            data.append(df)
-        
+
+        if use_cached and self._cache.is_empty():
+            try:
+                return self._cache.read()
+            except Exception:
+                pass  # fallback to uncached path
+
+        # fixme: there would be a cleaner way using to_dict, but that gives errors, due to the enums used. enum values?
+        # fixme: there is no id given for each doc, makes filtering reliant on order of documents
+        data = [doc.meta.to_df() for doc in self.docs]
+
         df_all = pl.concat(data, how="vertical")
-        _write_meta_cache(self, df_all)
+        self._cache.write(df_all)
         return df_all
-    
-def _is_cached(corpus: DakodaCorpus) -> bool:
-    cache = Path('.meta_cache') / corpus.name
-    cache.with_suffix('.csv')
-    return cache.is_file()
 
-def _write_meta_cache(corpus: DakodaCorpus, df: pl.DataFrame) -> bool:
-    cache = Path('.meta_cache') / corpus.name
-    df.write_csv(cache)
-    return True
 
-def _read_meta_cache(corpus: DakodaCorpus) -> pl.DataFrame:
-    cache = Path('.meta_cache') / corpus.name
-    return pl.read_csv(cache)
+# TODO: cache_dir constant, configurable via .env / config.py?
+class CorpusMetaCache:
+    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path = ".meta_cache"):
+        self.corpus = corpus
+        self.cache_dir = Path(cache_dir)
+
+    # todo: might need a rework with filtered views and subsets and whatnot. probably hashing the document paths is a good idea
+    @property
+    def cache_file(self):
+        return (self.cache_dir / self.corpus.name).with_suffix(".csv")
+
+    def is_empty(self) -> bool:
+        return self.cache_file.exists()
+
+    def write(self, df: pl.DataFrame) -> bool:
+        cache_dir = self.cache_dir
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        df.write_csv(self.cache_file)
+        return True
+
+    def read(self) -> pl.DataFrame:
+        return pl.read_csv(self.cache_file)
+
+    def clear(self):
+        self.cache_file.unlink(missing_ok=True)
