@@ -14,18 +14,34 @@ from dakoda.uima import load_cas_from_file, load_dakoda_typesystem
 
 class DakodaDocument:
     def __init__(
-        self, cas: Cas, id: str | None = None, corpus: DakodaCorpus | None = None
+        self, cas: Cas | None, id: str | None = None, corpus: DakodaCorpus | None = None
     ):
-        self.cas = cas
+        self._cas = cas
         self.id = id
         self.corpus = corpus
+
+        if corpus is None and cas is None:
+            raise ValueError("Cas and Corpus cannot be None.")
 
     @property
     def text(self) -> str:
         return self.cas.sofa_string
 
     @property
+    def cas(self) -> Cas:
+        if self._cas is None:
+            cas = load_cas_from_file(self.corpus.path / f'{self.id}.xmi', ts=self.corpus.ts)
+            self._cas = cas
+
+        return self._cas
+
+
+    @property
     def meta(self) -> MetaData:
+        cached_file = self.corpus.path / '.meta_cache' / f'{self.id}.json' # todo: encode this information in corpus?
+        if cached_file.is_file():
+            return MetaData.from_json_file(cached_file)
+
         return MetaData.from_cas(self.cas)
 
 
@@ -85,13 +101,13 @@ class DakodaCorpus:
 
     def _get_by_path(self, path: str | Path) -> DakodaDocument:
         path = Path(path)
+        expected_file = self.path / f'{path.stem}.xmi'
 
-        if path.is_file():
-            cas = load_cas_from_file(path, self.ts)
-        else:
-            cas = load_cas_from_file(self.path / (path.stem + ".xmi"), self.ts)
+        # todo: probably best to move to DakodaDocument constructor
+        if (not path.is_file() and path.suffix == '.xmi') and not expected_file.is_file():
+            raise FileNotFoundError(f"No corresponding XMI file for : {path}")
 
-        return DakodaDocument(cas, id=path.stem, corpus=self)
+        return DakodaDocument(cas=None, id=path.stem, corpus=self)
 
     def _get_by_index(self, index: int) -> DakodaDocument:
         return self._get_by_path(self.document_paths[index])

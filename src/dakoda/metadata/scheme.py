@@ -2308,7 +2308,7 @@ class MetaData(DocumentType):
         return asdict(self)
 
     def to_df(self):
-        meta_dict = self.to_dict()
+        meta_dict = dict(self.__iter__())
         return pl.DataFrame(meta_dict)
 
     def to_json(self):
