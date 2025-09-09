@@ -9,7 +9,7 @@ import polars as pl
 from cassis import Cas
 
 from dakoda.metadata import MetaData
-from dakoda.uima import load_cas_from_file, load_dakoda_typesystem
+from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fieldname, view_to_name
 
 
 class DakodaDocument:
@@ -175,3 +175,56 @@ class CorpusMetaCache:
 
     def clear(self):
         self.cache_file.unlink(missing_ok=True)
+
+# this is an index, not a cache. probably the same for meta possible?
+class CorpusDocumentIndexCache:
+    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path | None = None):
+        self.corpus = corpus
+        if cache_dir is None:
+            cache_dir = self.corpus.path / ".meta_cache" # todo align cache dirs
+
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def cache_file(self):
+        return (self.cache_dir / 'cas_cache').with_suffix(".parquet")
+
+    def write(self, df: pl.DataFrame) -> bool:
+        df.write_parquet(self.cache_file)
+        return True
+
+    def read(self) -> pl.DataFrame:
+        return pl.read_parquet(self.cache_file)
+
+
+def document_to_index_entries(doc: DakodaDocument, idx=None):
+    entries = []
+    cas = doc.cas
+    for view_name, cas_view_name in view_to_name.items():
+        view = cas.get_view(cas_view_name)
+        for type_name, value_name in type_to_fieldname.items():
+            annotations = view.select(type_name)
+            for annotation in annotations:
+                if value_name == 'coveredText':
+                    value = annotation.get_covered_text()
+                else:
+                    value = annotation[value_name]
+                entry = {
+                    'idx': idx,
+                    'view': view_name,
+                    'annotation': type_name.split('.')[-1],
+                    'value_field': value_name,
+                    'value': value
+                }
+                entries.append(entry)
+    return entries
+
+
+def document_index(corpus: DakodaCorpus) -> pl.DataFrame:
+    entries = []
+    for i, doc in enumerate(corpus):
+        entries.extend(document_to_index_entries(doc, i))
+    return pl.DataFrame(entries).with_columns(
+        pl.col(["view", "annotation", "value_field"]).cast(pl.Categorical)
+    )

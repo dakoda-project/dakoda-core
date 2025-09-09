@@ -26,3 +26,17 @@ T_SENT = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence"
 T_MORPH = "de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.morph.Morpheme"
 T_DEP = "de.tudarmstadt.ukp.dkpro.core.api.syntax.type.dependency.Dependency"
 T_META = "de.tudarmstadt.ukp.dkpro.core.api.metadata.type.MetaDataStringField"
+T_STAGE = "org.dakoda.Stage"
+
+type_to_fieldname = {
+    T_TOKEN: 'coveredText',
+    T_LEMMA: 'lemma',
+    T_POS: 'posValue',
+    T_SENT: 'coveredText',
+    T_STAGE: 'name'
+}
+
+view_to_name = {
+    'learner': 'ctok',
+    'target_hypothesis': 'mixtral_th1'
+}
