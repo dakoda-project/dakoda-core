@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass, field, fields, is_dataclass
+import json
+from dataclasses import dataclass, field, fields, is_dataclass, asdict
 from decimal import Decimal
-from typing import List, Optional, Union, Any, Generator, Tuple, Iterator
+from typing import List, Optional, Union, Any, Tuple, Iterator
 
 import polars as pl
 from xsdata.formats.dataclass.context import XmlContext
@@ -52,7 +53,7 @@ from dakoda.metadata.constants import (
     TaskStimulusType,
     TopicType,
     TrgLangInputType,
-    WordOrderType,
+    WordOrderType, CustomJSONEncoder,
 )
 
 
@@ -2285,6 +2286,11 @@ class MetaData(DocumentType):
         return cls._json_parser.parse(io.StringIO(json_string), cls)
 
     @classmethod
+    def from_json_file(cls, filepath):
+        with open(filepath) as f:
+            return cls._json_parser.parse(f, cls)
+
+    @classmethod
     def from_cas(cls, cas):
         for meta in cas.select(T_META):
             if meta.get("key") == "structured_metadata":
@@ -2299,8 +2305,11 @@ class MetaData(DocumentType):
         return _traverse_dataclass_fields(self)
 
     def to_dict(self):
-        return dict(self)
+        return asdict(self)
 
     def to_df(self):
         meta_dict = self.to_dict()
         return pl.DataFrame(meta_dict)
+
+    def to_json(self):
+        return json.dumps(asdict(self), cls=CustomJSONEncoder)
