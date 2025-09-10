@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 import csv
+import json
+from decimal import Decimal
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from importlib_resources import files
 from importlib_resources.abc import Traversable
+from xsdata.models.datatype import XmlPeriod
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """JSON Encoder that handles all dataclasses."""
+
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, Enum):
+            return obj.value
+        elif isinstance(obj, Decimal):
+            return float(obj)
+        elif isinstance(obj, XmlPeriod):
+            return str(obj)
+        return super().default(obj)
 
 
 def _enum_from_file(file_path: str | Path | Traversable, separator=","):

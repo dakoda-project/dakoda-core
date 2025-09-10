@@ -1,4 +1,5 @@
 import cassis
+from cassis import Cas
 from importlib_resources import files
 
 
@@ -12,6 +13,12 @@ def load_cas_from_file(path, ts):
         return cassis.load_cas_from_xmi(f, typesystem=ts)
 
 
+def get_cas_meta_json_string(cas: Cas):
+    for meta in cas.select(T_META):
+        if meta.get("key") == "structured_metadata":
+            return meta.get("value")
+
+
 T_TOKEN = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Token"
 T_LEMMA = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Lemma"
 T_POS = "de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.POS"
@@ -19,3 +26,17 @@ T_SENT = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence"
 T_MORPH = "de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.morph.Morpheme"
 T_DEP = "de.tudarmstadt.ukp.dkpro.core.api.syntax.type.dependency.Dependency"
 T_META = "de.tudarmstadt.ukp.dkpro.core.api.metadata.type.MetaDataStringField"
+T_STAGE = "org.dakoda.Stage"
+
+type_to_fieldname = {
+    T_TOKEN: 'coveredText',
+    T_LEMMA: 'value',
+    T_POS: 'PosValue',
+    T_SENT: 'coveredText',
+    T_STAGE: 'name'
+}
+
+view_to_name = {
+    'learner': 'ctok',
+    'target_hypothesis': 'mixtral_th1'
+}

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass, field, fields, is_dataclass
+import json
+from dataclasses import dataclass, field, fields, is_dataclass, asdict
 from decimal import Decimal
-from typing import List, Optional, Union, Any, Generator, Tuple, Iterator
+from enum import Enum
+from typing import List, Optional, Union, Any, Tuple, Iterator
 
 import polars as pl
 from xsdata.formats.dataclass.context import XmlContext
@@ -52,7 +54,7 @@ from dakoda.metadata.constants import (
     TaskStimulusType,
     TopicType,
     TrgLangInputType,
-    WordOrderType,
+    WordOrderType, CustomJSONEncoder,
 )
 
 
@@ -2225,7 +2227,7 @@ class DocumentType:
 
 
 # Todo: Might be better as a class. seems to work fine for now.
-def _traverse_dataclass_fields(obj: Any, depth: int = 0) -> Iterator[Tuple[str, Any]]:
+def _traverse_dataclass_fields(obj: Any) -> Iterator[Tuple[str, Any]]:
     """
     Recursively traverse a dataclass object and yield all field names and values.
 
@@ -2259,20 +2261,26 @@ def _traverse_dataclass_fields(obj: Any, depth: int = 0) -> Iterator[Tuple[str, 
         if field_value is None:
             continue
         elif is_dataclass(field_value):
-            yield from _traverse_dataclass_fields(field_value, depth + 2)
+            yield from _traverse_dataclass_fields(field_value)
         elif isinstance(field_value, (list, tuple)):
             for i, item in enumerate(field_value):
                 if is_dataclass(item):
-                    yield from _traverse_dataclass_fields(item, depth + 3)
+                    yield from _traverse_dataclass_fields(item)
                 else:
-                    yield (f'{field.name}___{i}', item)
+                    if isinstance(item, Enum):
+                        item = item.value
+                    yield (field.name, item)
         elif isinstance(field_value, dict):
             for key, value in field_value.items():
                 if is_dataclass(value):
-                    yield from _traverse_dataclass_fields(value, depth + 3)
+                    yield from _traverse_dataclass_fields(value)
                 else:
+                    if isinstance(value, Enum):
+                        value = value.value
                     yield (key, value)
         else:
+            if isinstance(field_value, Enum):
+                field_value = field_value.value
             yield (field.name, field_value)
 
 
@@ -2285,6 +2293,11 @@ class MetaData(DocumentType):
         return cls._json_parser.parse(io.StringIO(json_string), cls)
 
     @classmethod
+    def from_json_file(cls, filepath):
+        with open(filepath) as f:
+            return cls._json_parser.parse(f, cls)
+
+    @classmethod
     def from_cas(cls, cas):
         for meta in cas.select(T_META):
             if meta.get("key") == "structured_metadata":
@@ -2295,12 +2308,30 @@ class MetaData(DocumentType):
     class Meta:
         name = "document"
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def iter_flat(self) -> Iterator[Tuple[str, Any]]:
         return _traverse_dataclass_fields(self)
 
     def to_dict(self):
-        return dict(self)
+        return asdict(self)
 
-    def to_df(self):
-        meta_dict = self.to_dict()
-        return pl.DataFrame(meta_dict)
+    def to_records(self, idx: int | None=None):
+        entries = []
+        for key, value in self.iter_flat():
+            entries.append({
+                'idx': idx,
+                'field': key,
+                'value': value,
+            })
+        return entries
+
+    def to_df(self, idx: int | None=None):
+        entries = self.to_records(idx=idx)
+        schema = {
+            "idx": pl.Int64,
+            "field": pl.Utf8,
+            "value": pl.Object,
+        }
+        return pl.DataFrame(entries, schema=schema)
+
+    def to_json(self):
+        return json.dumps(asdict(self), cls=CustomJSONEncoder)
