@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from dakoda.corpus import DakodaDocument
+from dakoda.corpus import DakodaDocument, CasIndexer, MetaDataIndexer
 
 
 def test_load_corpus(wtld):
@@ -85,12 +85,21 @@ def test_document(test_cas, comigs):
     assert len(doc.text) != 0
 
 
-def test_document_meta_df(comigs):
-    doc = comigs[-1]
-    df = comigs.document_meta_df(doc)
-    assert not df.is_empty()
+def test_cas_indexer(test_corpus):
+    indexer = CasIndexer()
+
+    doc = test_corpus.random_doc()
+    doc_df = indexer.index_document(doc)
+    df = indexer.index_corpus(test_corpus)
+
+    assert df.columns == doc_df.columns
+    assert all(col in indexer.field_mappings.keys() for col in df.columns)
 
 
-def test_corpus_meta_df(comigs):
-    df = comigs.generate_corpus_meta_df()
-    assert not df.is_empty()
+def test_meta_indexer(test_corpus):
+    indexer = MetaDataIndexer()
+    doc = test_corpus.random_doc()
+    doc_df = indexer.index_document(doc)
+    df = indexer.index_corpus(test_corpus)
+    assert df.columns == doc_df.columns
+    assert all(col in indexer.field_mappings.keys() for col in df.columns)
