@@ -30,8 +30,8 @@ T_STAGE = "org.dakoda.Stage"
 
 type_to_fieldname = {
     T_TOKEN: 'coveredText',
-    T_LEMMA: 'lemma',
-    T_POS: 'posValue',
+    T_LEMMA: 'value',
+    T_POS: 'PosValue',
     T_SENT: 'coveredText',
     T_STAGE: 'name'
 }

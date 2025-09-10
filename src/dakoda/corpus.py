@@ -58,15 +58,13 @@ class DakodaCorpus:
 
     ts = load_dakoda_typesystem()
 
-    def __init__(self, path, cache: CorpusMetaCache | None = None):
+    def __init__(self, path):
         self.path = Path(path)
         self.name = self.path.stem
         self.document_paths = list(self.path.glob("*.xmi"))
         self.document_paths.sort()
-        if cache is None:
-            cache = CorpusMetaCache(self)
-        self._cache = cache
-        self._cache.corpus = self
+        self._meta_cache = CorpusMetaCache(self)
+        self._meta_cache.corpus = self
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -135,31 +133,32 @@ class DakodaCorpus:
     def generate_corpus_meta_df(self, use_cached=True) -> pl.DataFrame:
         """Return a DataFrame with metadata for the whole corpus."""
 
-        if use_cached and self._cache.is_empty():
+        if use_cached and self._meta_cache.is_empty():
             try:
-                return self._cache.read()
+                return self._meta_cache.read()
             except Exception:
                 pass  # fallback to uncached path
 
-        # fixme: there would be a cleaner way using to_dict, but that gives errors, due to the enums used. enum values?
-        # fixme: there is no id given for each doc, makes filtering reliant on order of documents
-        data = [doc.meta.to_df() for doc in self.docs]
+        data = [doc.meta.to_df(i) for i, doc in enumerate(self.docs)]
 
-        df_all = pl.concat(data, how="vertical")
-        self._cache.write(df_all)
+        df_all = pl.concat(data,  how="vertical").with_columns(
+            pl.col(["field", "_module_name", "_class_name"]).cast(pl.Categorical)
+        )
+
+        # fixme: self._meta_cache.write(df_all) needs serialisation and deserialisation
         return df_all
 
 
 # TODO: cache_dir constant, configurable via .env / config.py?
 class CorpusMetaCache:
-    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path = ".meta_cache"):
+    def __init__(self, corpus: DakodaCorpus, cache_dir: str | Path = ".meta_cache", fmt='.parquet'):
         self.corpus = corpus
         self.cache_dir = Path(cache_dir)
+        self.format = fmt
 
-    # todo: might need a rework with filtered views and subsets and whatnot. probably hashing the document paths is a good idea
     @property
     def cache_file(self):
-        return (self.cache_dir / self.corpus.name).with_suffix(".csv")
+        return (self.cache_dir / self.corpus.name).with_suffix(self.format)
 
     def is_empty(self) -> bool:
         return self.cache_file.exists()
@@ -167,7 +166,12 @@ class CorpusMetaCache:
     def write(self, df: pl.DataFrame) -> bool:
         cache_dir = self.cache_dir
         cache_dir.mkdir(parents=True, exist_ok=True)
-        df.write_csv(self.cache_file)
+        if self.format == '.csv':
+            df.write_csv(self.cache_file)
+        elif self.format == '.parquet':
+            df.write_parquet(self.cache_file)
+        else:
+            return False
         return True
 
     def read(self) -> pl.DataFrame:
@@ -213,8 +217,8 @@ def document_to_index_entries(doc: DakodaDocument, idx=None):
                 entry = {
                     'idx': idx,
                     'view': view_name,
-                    'annotation': type_name.split('.')[-1],
-                    'value_field': value_name,
+                    'type': type_name.split('.')[-1],
+                    'field': value_name,
                     'value': value
                 }
                 entries.append(entry)
@@ -226,5 +230,5 @@ def document_index(corpus: DakodaCorpus) -> pl.DataFrame:
     for i, doc in enumerate(corpus):
         entries.extend(document_to_index_entries(doc, i))
     return pl.DataFrame(entries).with_columns(
-        pl.col(["view", "annotation", "value_field"]).cast(pl.Categorical)
+        pl.col(["view", "type", "field"]).cast(pl.Categorical)
     )
