@@ -5,6 +5,8 @@ import pytest
 from dakoda.corpus import DakodaCorpus
 from dakoda.uima import load_dakoda_typesystem, load_cas_from_file
 
+import polars as pl
+
 # TODO: make configurable via .env file, this should be the default
 TESTFILES_DIR = Path(__file__).parent.parent / "data"
 
@@ -30,6 +32,9 @@ def test_corpus():
     corpus.document_paths = corpus.document_paths[:10]
     return corpus
 
+@pytest.fixture
+def cas_index():
+    return pl.read_csv(TESTFILES_DIR / 'idx_cas.csv')
 
 @pytest.fixture
 def empty_corpus():

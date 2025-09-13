@@ -3,7 +3,6 @@ from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Callable
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator, Literal
 
@@ -12,6 +11,8 @@ from cassis import Cas
 
 from dakoda.metadata import MetaData
 from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fieldname, view_to_name
+
+from dataclasses import dataclass
 
 
 class DakodaDocument:
@@ -215,7 +216,7 @@ class MetaDataIndexer(Indexer):
         return entries
 
 
-# TODO: generalize
+# TODO: generalize & test. serialisation and deserialisation needs work. idea: add type column and module column. dynamic imports
 class IndexCache:
     def __init__(self, corpus: DakodaCorpus, cache_name: Literal['cas', 'meta'], cache_dir: str | Path | None = None):
         self.corpus = corpus
