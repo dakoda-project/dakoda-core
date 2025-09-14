@@ -1,22 +1,61 @@
 from __future__ import annotations
 
-import operator
-from dataclasses import dataclass, replace
-from functools import reduce
-from typing import Any, Literal
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Literal, Callable
 import polars as pl
+
+Operator = Literal[
+    'eq', 'ne', 'lt', 'le', 'gt', 'ge',
+    'contains', 'startswith', 'endswith',
+    'in', 'not_in', 'is_null', 'is_not_null', 'custom'
+]
+
+class Predicate(ABC):
+    """Base predicate that returns a boolean series indicating which rows match"""
+
+    @abstractmethod
+    def evaluate(self, df: pl.DataFrame) -> pl.Series:
+        """Return a boolean series indicating which rows match this predicate"""
+        pass
+
+    def __and__(self, other: Predicate) -> AndPredicate:
+        return AndPredicate([self, other])
+
+    def __or__(self, other: Predicate) -> OrPredicate:
+        return OrPredicate([self, other])
+
+    def __invert__(self) -> NotPredicate:
+        return NotPredicate(self)
+
+
+class TruePredicate(Predicate):
+    """Always returns True for all rows"""
+
+    def evaluate(self, index: pl.DataFrame) -> pl.Series:
+        return pl.repeat(True, n=len(index), dtype=pl.Boolean, eager=True)
+
+
+class FalsePredicate(Predicate):
+    """Always returns False for all rows"""
+
+    def evaluate(self, index: pl.DataFrame) -> pl.Series:
+        return pl.repeat(False, n=len(index), dtype=pl.Boolean, eager=True)
 
 
 @dataclass
-class Condition:
-    operator: str
+class ColumnPredicate(Predicate):
+    """Predicate that checks a specific column against a condition"""
+    column: str
+    operator: Operator
     value: Any
 
-    def __repr__(self):
-        return f"{self.operator}({self.value!r})"
+    def evaluate(self, df: pl.DataFrame) -> pl.Series:
+        if self.column not in df.columns:
+            return FalsePredicate().evaluate(df)
 
-    def check(self, series: pl.Series) -> pl.Series:
-        """Check if the series elements satisfy this condition. Returns a boolean Series."""
+        series = df[self.column]
+
         if self.operator == 'eq':
             return series == self.value
         elif self.operator == 'ne':
@@ -43,101 +82,93 @@ class Condition:
             return series.is_null()
         elif self.operator == 'is_not_null':
             return series.is_not_null()
-        elif self.operator == 'lambda':
-            # Apply lambda function element-wise
+        elif self.operator == 'custom':
             return series.map_elements(self.value, return_dtype=pl.Boolean)
         else:
             raise ValueError(f"Unknown operator: {self.operator}")
 
 @dataclass
-class QueryBuilder:
-    field_name: str | None = None
-    type_name: str | None = None
-    view_name: str | None = None
-    data_target: Literal['cas', 'meta'] = 'cas'
-    conditions: list | None = None
+class ConjunctionPredicate(Predicate):
+    predicates: list[Predicate]
+    conjunction_type: Literal['and', 'or'] = 'and'
 
-    def select(self, field_name: str | None = None, type_name: str | None = None, view_name: str | None = None):
-        updates = {}
-        if field_name is not None:
-            updates['field_name'] = field_name
-        if type_name is not None:
-            updates['type_name'] = type_name
-        if view_name is not None:
-            updates['view_name'] = view_name
+    def __post_init__(self):
+        if self.conjunction_type not in ['and', 'or']:
+            self.conjunction_type = 'and'
 
-        return replace(self, **updates)
+    def evaluate(self, df: pl.DataFrame) -> pl.Series:
+        if not self.predicates:
+            val = True if self.conjunction_type == 'and' else False
+            return pl.repeat(val, n=len(df), dtype=pl.Boolean, eager=True)
 
-    def value(self,
-              eq: Any = None,
-              ne: Any = None,
-              lt: Any = None,
-              le: Any = None,
-              gt: Any = None,
-              ge: Any = None,
-              contains: Any = None,
-              startswith: str = None,
-              endswith: str = None,
-              in_: list = None,
-              not_in: list = None,
-              is_null: bool = None,
-              is_not_null: bool = None,
-              lambda_: callable = None) -> QueryBuilder:
+        result = self.predicates[0].evaluate(df)
+        for pred in self.predicates[1:]:
+            if self.conjunction_type == 'and':
+                result = result & pred.evaluate(df)
+            else:
+                result = result | pred.evaluate(df)
+        return result
 
-        current_conditions = self.conditions or []
-        new_conditions = current_conditions.copy()
 
-        if eq is not None:
-            new_conditions.append(Condition('eq', eq))
-        if ne is not None:
-            new_conditions.append(Condition('ne', ne))
-        if lt is not None:
-            new_conditions.append(Condition('lt', lt))
-        if le is not None:
-            new_conditions.append(Condition('le', le))
-        if gt is not None:
-            new_conditions.append(Condition('gt', gt))
-        if ge is not None:
-            new_conditions.append(Condition('ge', ge))
-        if contains is not None:
-            new_conditions.append(Condition('contains', contains))
-        if startswith is not None:
-            new_conditions.append(Condition('startswith', startswith))
-        if endswith is not None:
-            new_conditions.append(Condition('endswith', endswith))
-        if in_ is not None:
-            new_conditions.append(Condition('in', in_))
-        if not_in is not None:
-            new_conditions.append(Condition('not_in', not_in))
-        if is_null is not None:
-            new_conditions.append(Condition('is_null', None))
-        if is_not_null is not None:
-            new_conditions.append(Condition('is_not_null', None))
-        if lambda_ is not None:
-            new_conditions.append(Condition('lambda', lambda_))
+@dataclass
+class AndPredicate(ConjunctionPredicate):
+    """Combines predicates with AND logic"""
 
-        return replace(self, conditions=new_conditions)
+    def __init__(self, predicates: list[Predicate]):
+        super().__init__(predicates, 'and')
 
-    def apply_conditions(self, index: pl.DataFrame) -> pl.Series:
-        """Apply all conditions to an index and return a series of document indices"""
-        if not self.conditions:
-            return index['idx'].unique()
 
-        masks = []
-        # todo: might be best to have a wrapper class that does these checks index mapping is needed here
-        if self.data_target == 'cas' and self.type_name:
-            masks.append(index['type'] == self.type_name)
+@dataclass
+class OrPredicate(ConjunctionPredicate):
+    """Combines predicates with OR logic"""
 
-        if self.data_target == 'cas' and self.view_name:
-            masks.append(index['view'] == self.view_name)
+    def __init__(self, predicates: list[Predicate]):
+        super().__init__(predicates, 'or')
 
-        if self.field_name:
-            masks.append(index['field'] == self.field_name)
 
-        all_true = pl.repeat(True, n=len(index), dtype=pl.Boolean)
-        index = index.filter(reduce(lambda x, y: x & y, masks, all_true))
+@dataclass
+class NotPredicate(Predicate):
+    """Negates a predicate"""
+    predicate: Predicate
 
-        all_true = pl.repeat(True, n=len(index), dtype=pl.Boolean)
-        mask = reduce(lambda x, y: x & y, (condition.check(index['value']) for condition in self.conditions), all_true)
+    def evaluate(self, df: pl.DataFrame) -> pl.Series:
+        return ~self.predicate.evaluate(df)
 
-        return index.filter(mask)['idx'].unique()
+
+class Query:
+    """A query that can filter and aggregate data based on predicates"""
+
+    def __init__(self, predicate: Predicate | None = None):
+        self.predicate = predicate or TruePredicate()
+
+    def filter(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Filter dataframe rows based on the predicate"""
+        mask = self.predicate.evaluate(df)
+        return df.filter(mask)
+
+    def documents(self, df: pl.DataFrame) -> pl.Series:
+        """Get unique document indices that match the predicate"""
+        filtered = self.filter(df)
+        if len(filtered) == 0:
+            return pl.Series([], dtype=pl.Int64)
+        return filtered['idx'].unique().sort()
+
+
+# Convenience functions for creating predicates
+def field(name: str, operator: Operator = 'eq') -> ColumnPredicate:
+    """Create a predicate for the field column"""
+    return ColumnPredicate('field', operator, name)
+
+def annotation(name: str, operator: Operator = 'eq') -> ColumnPredicate:
+    """Documents of a specific type"""
+    return ColumnPredicate('type', operator, name)
+
+def view(name: str, operator: Operator = 'eq') -> ColumnPredicate:
+    """Documents from a specific view"""
+    return ColumnPredicate('view', operator, name)
+
+def value(val: Any, operator: Operator = 'eq') -> ColumnPredicate:
+    """Create a predicate for the value column"""
+    return ColumnPredicate('value', operator, val)
+
+
