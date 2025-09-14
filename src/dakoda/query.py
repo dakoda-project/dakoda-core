@@ -19,6 +19,19 @@ class Predicate(ABC):
         """Return a boolean series indicating which rows match this predicate"""
         pass
 
+    def filter(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Filter dataframe rows based on the predicate"""
+        mask = self.evaluate(df)
+        return df.filter(mask)
+
+    def documents(self, df: pl.DataFrame, idx_col='idx') -> pl.Series:
+        """Get unique document indices that match the predicate"""
+        filtered = self.filter(df)
+        if len(filtered) == 0:
+            return pl.Series([], dtype=pl.Int64)
+        return filtered[idx_col].unique().sort()
+
+
     def __and__(self, other: Predicate) -> AndPredicate:
         return AndPredicate([self, other])
 
@@ -133,25 +146,6 @@ class NotPredicate(Predicate):
 
     def evaluate(self, df: pl.DataFrame) -> pl.Series:
         return ~self.predicate.evaluate(df)
-
-
-class Query:
-    """A query that can filter and aggregate data based on predicates"""
-
-    def __init__(self, predicate: Predicate | None = None):
-        self.predicate = predicate or TruePredicate()
-
-    def filter(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Filter dataframe rows based on the predicate"""
-        mask = self.predicate.evaluate(df)
-        return df.filter(mask)
-
-    def documents(self, df: pl.DataFrame) -> pl.Series:
-        """Get unique document indices that match the predicate"""
-        filtered = self.filter(df)
-        if len(filtered) == 0:
-            return pl.Series([], dtype=pl.Int64)
-        return filtered['idx'].unique().sort()
 
 
 # Convenience functions for creating predicates
