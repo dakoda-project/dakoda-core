@@ -53,7 +53,7 @@ def test_subscript_access(comigs):
     doc = comigs["bThN_2.xmi"]
     assert isinstance(doc, DakodaDocument)
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(KeyError):
         comigs["doesnotexist.xmi"]
 
     # select by iterable

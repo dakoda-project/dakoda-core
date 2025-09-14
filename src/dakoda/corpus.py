@@ -54,8 +54,16 @@ class DakodaCorpus:
     def __init__(self, path):
         self.path = Path(path)
         self.name = self.path.stem
-        self.document_paths = list(self.path.glob("*.xmi"))
-        self.document_paths.sort()
+        self._document_paths = list(self.path.glob("*.xmi"))
+        self._document_paths.sort()
+
+        self._docs = []
+        self._id_to_doc = {}
+        for p in self.document_paths:
+            doc = DakodaDocument(cas=None, id=p.stem, corpus=self)
+            self._docs.append(doc)
+            self._id_to_doc[doc.id] = doc
+
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -69,11 +77,10 @@ class DakodaCorpus:
         return self.name == other.name and self.path == other.path
 
     def __len__(self):
-        return len(self.document_paths)
+        return len(self._docs)
 
     def __iter__(self):
-        for xmi in self.document_paths:
-            yield self[xmi]
+        return iter(self._docs)
 
     def __getitem__(self, key):
         # TODO: Querying Corpus
@@ -89,17 +96,10 @@ class DakodaCorpus:
             raise KeyError(f"Invalid key type: {type(key)}")
 
     def _get_by_path(self, path: str | Path) -> DakodaDocument:
-        path = Path(path)
-        expected_file = self.path / f'{path.stem}.xmi'
-
-        # todo: probably best to move to DakodaDocument constructor
-        if (not path.is_file() and path.suffix == '.xmi') and not expected_file.is_file():
-            raise FileNotFoundError(f"No corresponding XMI file for : {path}")
-
-        return DakodaDocument(cas=None, id=path.stem, corpus=self)
+        return self._id_to_doc[Path(path).stem]
 
     def _get_by_index(self, index: int) -> DakodaDocument:
-        return self._get_by_path(self.document_paths[index])
+        return self._docs[index]
 
     def _get_by_slice(self, indices_slice: slice) -> Iterator[DakodaDocument]:
         start, stop, step = indices_slice.indices(len(self))
@@ -111,15 +111,17 @@ class DakodaCorpus:
 
     @property
     def docs(self):
-        return iter(self)
+        return self._docs.copy()
+
+    @property
+    def document_paths(self):
+        return self._document_paths.copy()
 
     def random_doc(self) -> DakodaDocument:
         """Return a random document from the corpus."""
-        if not self.document_paths:
+        if not self._docs:
             raise ValueError("No documents in the corpus.")
-
-        xmi = random.choice(self.document_paths)
-        return self._get_by_path(xmi)
+        return random.choice(self._docs)
 
 
 @dataclass

@@ -29,7 +29,8 @@ def wtld():
 @pytest.fixture
 def test_corpus():
     corpus = DakodaCorpus(TESTFILES_DIR / "WTLD")
-    corpus.document_paths = corpus.document_paths[:10]
+    corpus._document_paths = corpus._document_paths[:10]
+    corpus._docs = corpus._docs[:10]
     return corpus
 
 @pytest.fixture
