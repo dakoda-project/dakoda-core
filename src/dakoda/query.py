@@ -11,6 +11,8 @@ Operator = Literal[
     'in', 'not_in', 'is_null', 'is_not_null', 'custom'
 ]
 
+AggregationFunction = Literal['count', 'sum', 'mean', 'min', 'max', 'std', 'var']
+
 class Predicate(ABC):
     """Base predicate that returns a boolean series indicating which rows match"""
 
@@ -148,6 +150,50 @@ class NotPredicate(Predicate):
         return ~self.predicate.evaluate(df)
 
 
+@dataclass
+class AggregationPredicate(Predicate):
+    """Predicate that filters documents based on aggregated values"""
+    base_predicate: Predicate
+    agg_function: AggregationFunction
+    operator: Operator
+    threshold: Any
+    group_by: str = 'idx'
+    value_column: str = 'value'
+
+    def evaluate(self, df: pl.DataFrame) -> pl.Series:
+        """Return boolean series indicating which documents pass the aggregation filter"""
+        # First filter by base predicate
+        filtered = self.base_predicate.filter(df)
+
+        if len(filtered) == 0:
+            return pl.repeat(False, n=len(df), dtype=pl.Boolean, eager=True)
+
+        # Get the appropriate aggregation expression
+        if self.agg_function == 'count':
+            agg_expr = pl.len()
+        elif self.agg_function == 'sum':
+            agg_expr = pl.col(self.value_column).sum()
+        elif self.agg_function == 'mean':
+            agg_expr = pl.col(self.value_column).mean()
+        elif self.agg_function == 'min':
+            agg_expr = pl.col(self.value_column).min()
+        elif self.agg_function == 'max':
+            agg_expr = pl.col(self.value_column).max()
+        elif self.agg_function == 'std':
+            agg_expr = pl.col(self.value_column).std()
+        elif self.agg_function == 'var':
+            agg_expr = pl.col(self.value_column).var()
+        else:
+            raise ValueError(f"Unknown aggregation function: {self.agg_function}")
+
+        agg_result = filtered.group_by(self.group_by).agg(agg_expr.alias('agg_value'))
+        threshold_condition = ColumnPredicate('agg_value', self.operator, self.threshold)
+        passing_groups = agg_result.filter(threshold_condition.evaluate(agg_result))[self.group_by]
+
+        # Return boolean mask for all rows indicating which belong to passing groups / documents
+        return df[self.group_by].is_in(passing_groups)
+
+
 # Convenience functions for creating predicates
 def field(name: str, operator: Operator = 'eq') -> ColumnPredicate:
     """Create a predicate for the field column"""
@@ -166,3 +212,31 @@ def value(val: Any, operator: Operator = 'eq') -> ColumnPredicate:
     return ColumnPredicate('value', operator, val)
 
 
+# Convenience functions for aggregation predicates
+def count(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on count of matching rows"""
+    return AggregationPredicate(predicate, 'count', operator, threshold, 'idx')
+
+def sum_filter(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on sum of matching values"""
+    return AggregationPredicate(predicate, 'sum', operator, threshold, 'idx', 'value')
+
+def mean_filter(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on mean of matching values"""
+    return AggregationPredicate(predicate, 'mean', operator, threshold, 'idx', 'value')
+
+def min_filter(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on minimum of matching values"""
+    return AggregationPredicate(predicate, 'min', operator, threshold, 'idx', 'value')
+
+def max_filter(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on maximum of matching values"""
+    return AggregationPredicate(predicate, 'max', operator, threshold, 'idx', 'value')
+
+def std_filter(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on standard deviation of matching values"""
+    return AggregationPredicate(predicate, 'std', operator, threshold, 'idx', 'value')
+
+def var_filter(predicate: Predicate, operator: Operator, threshold: Any) -> AggregationPredicate:
+    """Filter documents based on variance of matching values"""
+    return AggregationPredicate(predicate, 'var', operator, threshold, 'idx', 'value')
