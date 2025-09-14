@@ -11,7 +11,38 @@ Operator = Literal[
     'in', 'not_in', 'is_null', 'is_not_null', 'custom'
 ]
 
+OPERATOR_FUNCTIONS = {
+    'eq': lambda series, value: series == value,
+    'ne': lambda series, value: series != value,
+    'lt': lambda series, value: series < value,
+    'le': lambda series, value: series <= value,
+    'gt': lambda series, value: series > value,
+    'ge': lambda series, value: series >= value,
+    'contains': lambda series, value: series.str.contains(str(value), literal=True),
+    'startswith': lambda series, value: series.str.starts_with(str(value)),
+    'endswith': lambda series, value: series.str.ends_with(str(value)),
+    'in': lambda series, value: series.is_in(value),
+    'not_in': lambda series, value: ~series.is_in(value),
+    'is_null': lambda series, value: series.is_null(),
+    'is_not_null': lambda series, value: series.is_not_null(),
+    'custom': lambda series, value: series.map_elements(value, return_dtype=pl.Boolean)
+}
+
+numeric_operators = {'lt', 'le', 'gt', 'ge'}
+
 AggregationFunction = Literal['count', 'sum', 'mean', 'min', 'max', 'std', 'var']
+
+AGGREGATION_FUNCTIONS = {
+    'count': lambda value_col: pl.len(),
+    'sum': lambda value_col: pl.col(value_col).sum(),
+    'mean': lambda value_col: pl.col(value_col).mean(),
+    'min': lambda value_col: pl.col(value_col).min(),
+    'max': lambda value_col: pl.col(value_col).max(),
+    'std': lambda value_col: pl.col(value_col).std(),
+    'var': lambda value_col: pl.col(value_col).var()
+}
+
+numeric_aggregations = {'sum', 'mean', 'min', 'max', 'std', 'var'}
 
 class Predicate(ABC):
     """Base predicate that returns a boolean series indicating which rows match"""
@@ -70,40 +101,20 @@ class ColumnPredicate(Predicate):
             return FalsePredicate().evaluate(df)
 
         series = df[self.column]
+        op_fn = OPERATOR_FUNCTIONS[self.operator]
 
-        if self.operator == 'eq':
-            return series == self.value
-        elif self.operator == 'ne':
-            return series != self.value
-        elif self.operator == 'lt':
-            return series < self.value
-        elif self.operator == 'le':
-            return series <= self.value
-        elif self.operator == 'gt':
-            return series > self.value
-        elif self.operator == 'ge':
-            return series >= self.value
-        elif self.operator == 'contains':
-            return series.str.contains(str(self.value), literal=True)
-        elif self.operator == 'startswith':
-            return series.str.starts_with(str(self.value))
-        elif self.operator == 'endswith':
-            return series.str.ends_with(str(self.value))
-        elif self.operator == 'in':
-            return series.is_in(self.value)
-        elif self.operator == 'not_in':
-            return ~series.is_in(self.value)
-        elif self.operator == 'is_null':
-            return series.is_null()
-        elif self.operator == 'is_not_null':
-            return series.is_not_null()
-        elif self.operator == 'custom':
-            return series.map_elements(self.value, return_dtype=pl.Boolean)
+        if self.operator in numeric_operators:
+            series = series.cast(pl.Float64, strict=False)
+            return df.select(
+                pl.when(series.is_not_null())
+                .then(op_fn(series, self.value))
+                .otherwise(False)
+            ).to_series()
         else:
-            raise ValueError(f"Unknown operator: {self.operator}")
+            return op_fn(series, self.value)
 
 @dataclass
-class ConjunctionPredicate(Predicate):
+class CompositePredicate(Predicate):
     predicates: list[Predicate]
     conjunction_type: Literal['and', 'or'] = 'and'
 
@@ -126,7 +137,7 @@ class ConjunctionPredicate(Predicate):
 
 
 @dataclass
-class AndPredicate(ConjunctionPredicate):
+class AndPredicate(CompositePredicate):
     """Combines predicates with AND logic"""
 
     def __init__(self, predicates: list[Predicate]):
@@ -134,7 +145,7 @@ class AndPredicate(ConjunctionPredicate):
 
 
 @dataclass
-class OrPredicate(ConjunctionPredicate):
+class OrPredicate(CompositePredicate):
     """Combines predicates with OR logic"""
 
     def __init__(self, predicates: list[Predicate]):
@@ -166,27 +177,17 @@ class AggregationPredicate(Predicate):
         filtered = self.base_predicate.filter(df)
 
         if len(filtered) == 0:
-            return pl.repeat(False, n=len(df), dtype=pl.Boolean, eager=True)
+            return FalsePredicate().evaluate(df)
 
-        # Get the appropriate aggregation expression
-        if self.agg_function == 'count':
-            agg_expr = pl.len()
-        elif self.agg_function == 'sum':
-            agg_expr = pl.col(self.value_column).sum()
-        elif self.agg_function == 'mean':
-            agg_expr = pl.col(self.value_column).mean()
-        elif self.agg_function == 'min':
-            agg_expr = pl.col(self.value_column).min()
-        elif self.agg_function == 'max':
-            agg_expr = pl.col(self.value_column).max()
-        elif self.agg_function == 'std':
-            agg_expr = pl.col(self.value_column).std()
-        elif self.agg_function == 'var':
-            agg_expr = pl.col(self.value_column).var()
-        else:
+        if self.agg_function not in AGGREGATION_FUNCTIONS:
             raise ValueError(f"Unknown aggregation function: {self.agg_function}")
 
+        if self.agg_function in numeric_aggregations:
+            filtered = filtered.with_columns(pl.col(self.value_column).cast(pl.Float64, strict=False))
+
+        agg_expr = AGGREGATION_FUNCTIONS[self.agg_function](self.value_column)
         agg_result = filtered.group_by(self.group_by).agg(agg_expr.alias('agg_value'))
+
         threshold_condition = ColumnPredicate('agg_value', self.operator, self.threshold)
         passing_groups = agg_result.filter(threshold_condition.evaluate(agg_result))[self.group_by]
 
@@ -210,6 +211,50 @@ def view(name: str, operator: Operator = 'eq') -> ColumnPredicate:
 def value(val: Any, operator: Operator = 'eq') -> ColumnPredicate:
     """Create a predicate for the value column"""
     return ColumnPredicate('value', operator, val)
+
+def eq(val: Any) -> ColumnPredicate:
+    return ColumnPredicate('value', 'eq', val)
+
+def neq(val: Any) -> ColumnPredicate:
+    return ColumnPredicate('value', 'ne', val)
+
+def lt(val: Any) -> ColumnPredicate:
+    return ColumnPredicate('value', 'lt', val)
+
+def le(val: Any) -> ColumnPredicate:
+    return ColumnPredicate('value', 'le', val)
+
+def gt(val: Any) -> ColumnPredicate:
+    return ColumnPredicate('value', 'gt', val)
+
+def ge(val: Any) -> ColumnPredicate:
+    return ColumnPredicate('value', 'ge', val)
+
+def contains(val: str) -> ColumnPredicate:
+    return ColumnPredicate('value', 'contains', val)
+
+def startswith(val: str) -> ColumnPredicate:
+    return ColumnPredicate('value', 'startswith', val)
+
+def endswith(val: str) -> ColumnPredicate:
+    return ColumnPredicate('value', 'endswith', val)
+
+def in_list(vals: list[Any]) -> ColumnPredicate:
+    return ColumnPredicate('value', 'in', vals)
+
+def not_in_list(vals: list[Any]) -> ColumnPredicate:
+    return ColumnPredicate('value', 'not_in', vals)
+
+def is_null() -> ColumnPredicate:
+    return ColumnPredicate('value', 'is_null', None)
+
+def is_not_null() -> ColumnPredicate:
+    return ColumnPredicate('value', 'is_not_null', None)
+
+def custom(func: Callable) -> ColumnPredicate:
+    return ColumnPredicate('value', 'custom', func)
+
+
 
 
 # Convenience functions for aggregation predicates

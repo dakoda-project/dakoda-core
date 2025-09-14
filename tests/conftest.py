@@ -39,3 +39,43 @@ def cas_index():
 @pytest.fixture
 def empty_corpus():
     return DakodaCorpus(TESTFILES_DIR / "EmptyCorpus")
+
+
+@pytest.fixture
+def sample_index():
+    """Create a synthetic index similar to the real data structure"""
+    data = [
+        (1, 'target_hypothesis', 'POS', 'PosValue', 'NN'),
+        (1, 'target_hypothesis', 'POS', 'PosValue', 'ART'),
+        (1, 'target_hypothesis', 'POS', 'PosValue', 'VVFIN'),
+        (1, 'target_hypothesis', 'Lemma', 'value', 'Mann'),
+        (1, 'target_hypothesis', 'Lemma', 'value', 'der'),
+
+        (2, 'learner', 'POS', 'PosValue', 'NN'),
+        (2, 'learner', 'POS', 'PosValue', 'NN'),
+        (2, 'learner', 'POS', 'PosValue', 'ART'),
+        (2, 'learner', 'POS', 'PosValue', 'VVFIN'),
+        (2, 'learner', 'Token', 'coveredText', 'Vater'),
+
+        (3, 'target_hypothesis', 'POS', 'PosValue', 'NN'),
+        (3, 'target_hypothesis', 'Stage', 'name', 'SVO'),
+        (3, 'target_hypothesis', 'Stage', 'name', 'SEP'),
+        (3, 'target_hypothesis', 'Stage', 'name', 'SVO'),
+
+        (4, 'learner', 'POS', 'PosValue', 'ART'),
+        (4, 'learner', 'POS', 'PosValue', 'PTKNEG'),
+
+        (5, 'target_hypothesis', 'Score', 'value', 10),
+        (5, 'target_hypothesis', 'Score', 'value', 20),
+        (5, 'target_hypothesis', 'Score', 'value', 30),
+
+        (6, 'learner', 'Score', 'value', 5),
+        (6, 'learner', 'Score', 'value', 15),
+    ]
+
+    return pl.DataFrame(
+        data,
+        schema=['idx', 'view', 'type', 'field', 'value'],
+        orient='row'
+    )
+
