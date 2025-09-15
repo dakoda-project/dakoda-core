@@ -1,3 +1,6 @@
+from enum import Enum
+
+from dakoda import DakodaDocument
 from dakoda.query import field, value, view, annotation, count, mean_filter, eq, AndPredicate
 import polars as pl
 
@@ -60,3 +63,16 @@ def test_syntactic_sugar(cas_index):
     q = annotation('POS') & eq('VVFIN')
     r = AndPredicate([annotation('POS'), eq('VVFIN')])
     assert all(q.evaluate(cas_index) == p.evaluate(cas_index)) and all(q.evaluate(cas_index) == r.evaluate(cas_index))
+
+def test_corpus_queries(test_corpus):
+    q = annotation('Token') # check if document has at least one token annotation
+    docs = list(test_corpus[q])
+    assert len(docs) == len(test_corpus)
+
+    q = count(annotation('Token'), 'gt', 5)
+    docs = test_corpus[q]
+    assert all(isinstance(doc, DakodaDocument) for doc in docs)
+
+    q = field('corpus_admin_acronym') & value("SWIKO")
+    docs = list(test_corpus[q])
+    assert len(docs) == len(test_corpus)

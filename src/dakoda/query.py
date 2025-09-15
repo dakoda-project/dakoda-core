@@ -89,6 +89,49 @@ class FalsePredicate(Predicate):
         return pl.repeat(False, n=len(index), dtype=pl.Boolean, eager=True)
 
 
+def _infer_cast_type(value: Any):
+    """Infer the Polars data type to cast to based on the comparison value"""
+    if isinstance(value, str):
+        return pl.String
+    elif isinstance(value, (int, float)):
+        return pl.Float64
+    elif isinstance(value, bool):
+        return pl.Boolean
+    elif isinstance(value, list) and value:
+        return _infer_cast_type(value[0])
+    return None
+
+def _safe_convert(converter):
+    def wrapper(x):
+        if x is None:
+            return None
+        try:
+            return converter(x)
+        except (ValueError, TypeError):
+            return None
+
+    return wrapper
+
+def _cast_safe(series: pl.Series, cast_type: pl.DataType) -> pl.Series:
+    """Tries to cast a polars series to the given datatype."""
+    converters = {
+        pl.String: _safe_convert(str),
+        pl.Float64: _safe_convert(float),
+        pl.Boolean: _safe_convert(bool),
+    }
+
+    if series.dtype == pl.Object or cast_type in converters:
+        if cast_type in converters:
+            return series.map_elements(converters[cast_type], return_dtype=cast_type)
+
+    try:
+        return series.cast(cast_type, strict=False)
+    except pl.ComputeError:
+        # Triangle cast: original → string → target
+        string_series = series.map_elements(converters[pl.String], return_dtype=pl.String)
+        return string_series if cast_type == pl.String else string_series.cast(cast_type, strict=False)
+
+
 @dataclass
 class ColumnPredicate(Predicate):
     """Predicate that checks a specific column against a condition"""
@@ -103,8 +146,11 @@ class ColumnPredicate(Predicate):
         series = df[self.column]
         op_fn = OPERATOR_FUNCTIONS[self.operator]
 
-        if self.operator in numeric_operators:
-            series = series.cast(pl.Float64, strict=False)
+        cast_type = _infer_cast_type(self.value)
+        if cast_type is not None:
+            series = _cast_safe(series, cast_type)
+
+        if self.operator not in ['is_null', 'is_not_null']:
             return df.select(
                 pl.when(series.is_not_null())
                 .then(op_fn(series, self.value))
