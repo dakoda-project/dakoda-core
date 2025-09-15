@@ -2226,7 +2226,6 @@ class DocumentType:
     )
 
 
-# Todo: Might be better as a class. seems to work fine for now.
 def _traverse_dataclass_fields(obj: Any) -> Iterator[Tuple[str, Any]]:
     """
     Recursively traverse a dataclass object and yield all field names and values.

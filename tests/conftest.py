@@ -7,7 +7,6 @@ from dakoda.uima import load_dakoda_typesystem, load_cas_from_file
 
 import polars as pl
 
-# TODO: make configurable via .env file, this should be the default
 TESTFILES_DIR = Path(__file__).parent.parent / "data"
 
 

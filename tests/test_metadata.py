@@ -7,7 +7,7 @@ def test_meta(test_cas):
     assert meta.text.text_tokenCount == 243
     assert (
         meta.corpus.administrative.corpus_admin_acronym == "ComiGs"
-    )  # FIXME: This should probably not be correct?
+    )
 
 
 def test_serialization_deserialization_with_tmpfile(test_corpus):
