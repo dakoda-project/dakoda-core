@@ -1,2 +1,8 @@
 from .corpus import DakodaCorpus as Dakoda, DakodaDocument
 from .metadata import MetaData
+from .query import (
+    field, annotation, view, value,
+    eq, neq, lt, le, gt, ge, contains, startswith, endswith,
+    in_list, not_in_list, is_null, is_not_null, custom,
+    count, sum_filter, mean_filter, min_filter, max_filter, std_filter, var_filter,
+)

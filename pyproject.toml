@@ -4,7 +4,8 @@ version = "0.1.0"
 description = ""
 authors = [
     "Marius Hamacher <marius.hamacher@outlook.de>",
-    "Torsten Zesch <torsten.zesch@fernuni-hagen.de>"
+    "Josef Ruppenhofer <josef.ruppenhofer@fernuni-hagen.de>",
+    "Torsten Zesch <torsten.zesch@fernuni-hagen.de>",
 ]
 readme = "README.md"
 packages = [
