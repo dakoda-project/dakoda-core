@@ -4,17 +4,19 @@ import random
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Callable
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Iterator, Literal, List
 
 import polars as pl
 from cassis import Cas
 
 from dakoda.metadata import MetaData
+from dakoda.query import Predicate
 from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fieldname, view_to_name
 
 from dataclasses import dataclass
 
 DataSubset = Literal['cas', 'meta']
+DATA_SUBSETS = {'cas', 'meta'}
 
 class DakodaDocument:
     def __init__(
@@ -99,8 +101,9 @@ class DakodaCorpus:
         return iter(self._docs)
 
     def __getitem__(self, key):
-        # TODO: Querying Corpus
-        if isinstance(key, str) or isinstance(key, Path):
+        if isinstance(key, Predicate):
+            return self.__getitem__(self._query(key))
+        elif isinstance(key, str) or isinstance(key, Path):
             return self._get_by_path(key)
         elif isinstance(key, int):
             return self._get_by_index(key)
@@ -148,12 +151,24 @@ class DakodaCorpus:
             cache.write(self._search_index[source_type])
 
     def _get_search_index(self, source_type: DataSubset):
-        if source_type in {'cas', 'meta'}:
+        if source_type in DATA_SUBSETS:
             if self._search_index.get(source_type) is None:
                 self._build_index(source_type)
             return self._search_index[source_type]
         else:
             raise ValueError('Source Type must be either "cas", "meta" or None.')
+
+    def _query(self, q: Predicate, subset: DataSubset | None = None) -> List[int]:
+        if subset in DATA_SUBSETS:
+            idx = self._get_search_index(subset)
+            return  q.documents(idx).to_list()
+        elif subset is None:
+            result: set[int] = set()
+            for subset in DATA_SUBSETS:
+                result.update(self._query(q, subset))
+            return list(result)
+        else:
+            raise ValueError('Subset must be either "cas", "meta" or None.')
 
     @property
     def size(self) -> int:
