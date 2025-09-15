@@ -14,6 +14,7 @@ from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fiel
 
 from dataclasses import dataclass
 
+DataSubset = Literal['cas', 'meta']
 
 class DakodaDocument:
     def __init__(
@@ -22,6 +23,7 @@ class DakodaDocument:
         self._cas = cas
         self.id = id
         self.corpus = corpus
+        # todo: _meta
 
         if corpus is None and cas is None:
             raise ValueError("Cas and Corpus cannot be None.")
@@ -41,11 +43,21 @@ class DakodaDocument:
 
     @property
     def meta(self) -> MetaData:
-        cached_file = self.corpus.path / '.meta_cache' / f'{self.id}.json' # todo: encode this information in corpus?
+        cached_file = self.corpus.path / f'{self.id}.json'
         if cached_file.is_file():
-            return MetaData.from_json_file(cached_file)
+            try:
+                return MetaData.from_json_file(cached_file)
+            except Exception as e:
+                pass # todo: log
 
-        return MetaData.from_cas(self.cas)
+        meta = MetaData.from_cas(self.cas)
+        try:
+            with open(cached_file, 'w') as f:
+                f.write(meta.to_json())
+        except Exception as e:
+            pass # todo: log
+
+        return meta
 
 
 class DakodaCorpus:
@@ -64,6 +76,10 @@ class DakodaCorpus:
             self._docs.append(doc)
             self._id_to_doc[doc.id] = doc
 
+        self._search_index: dict[DataSubset, pl.DataFrame | None] = {
+            'cas': None,
+            'meta': None
+        }
 
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
@@ -104,6 +120,40 @@ class DakodaCorpus:
     def _get_by_slice(self, indices_slice: slice) -> Iterator[DakodaDocument]:
         start, stop, step = indices_slice.indices(len(self))
         return (self._get_by_index(i) for i in range(start, stop, step))
+
+    def _build_index(self, source_type: DataSubset | None=None, force_rebuild: bool = False):
+        if source_type is None:
+            self._build_index('cas')
+            self._build_index('meta')
+            return
+
+        if self._search_index.get(source_type) is not None and not force_rebuild:
+            return
+
+        if source_type == 'cas':
+            indexer = CasIndexer()
+
+            cache = IndexCache(self, source_type)
+            if cache.is_cached and not force_rebuild:
+                self._search_index[source_type] = cache.read()
+                return
+        elif source_type == 'meta':
+            indexer = MetaDataIndexer()
+            cache = None
+        else:
+            raise ValueError('Source Type must be either "cas", "meta" or None.')
+
+        self._search_index[source_type] = indexer.index_corpus(self)
+        if cache is not None:
+            cache.write(self._search_index[source_type])
+
+    def _get_search_index(self, source_type: DataSubset):
+        if source_type in {'cas', 'meta'}:
+            if self._search_index.get(source_type) is None:
+                self._build_index(source_type)
+            return self._search_index[source_type]
+        else:
+            raise ValueError('Source Type must be either "cas", "meta" or None.')
 
     @property
     def size(self) -> int:
@@ -201,36 +251,36 @@ class CasIndexer(Indexer):
 
 
 class MetaDataIndexer(Indexer):
-    default_field_mappings = {
-        'idx': FieldMapping('idx', pl.Int64),
-        'field': FieldMapping('field', pl.Categorical),
-        'value': FieldMapping('value', pl.Object)
-    }
 
     def to_entries(self, doc: DakodaDocument, idx = None):
         entries = []
         for key, value in doc.meta.iter_flat():
             entries.append({
                 self.column_mapping.get('idx'): idx,
+                self.column_mapping.get('view'): None,
+                self.column_mapping.get('type'): None,
                 self.column_mapping.get('field'): key,
                 self.column_mapping.get('value'): value,
             })
         return entries
 
 
-# TODO: generalize & test. serialisation and deserialisation needs work. idea: add type column and module column. dynamic imports
 class IndexCache:
-    def __init__(self, corpus: DakodaCorpus, cache_name: Literal['cas', 'meta'], cache_dir: str | Path | None = None):
+    def __init__(self, corpus: DakodaCorpus, cache_name: DataSubset, cache_dir: str | Path | None = None):
         self.corpus = corpus
         self.cache_name = cache_name
         if cache_dir is None:
-            cache_dir = self.corpus.path / ".cache"
+            cache_dir = self.corpus.path / ".index"
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def cache_file(self):
         return (self.cache_dir / self.cache_name).with_suffix(".parquet")
+
+    @property
+    def is_cached(self) -> bool:
+        return self.cache_file.is_file()
 
     def write(self, df: pl.DataFrame) -> bool:
         df.write_parquet(self.cache_file)
