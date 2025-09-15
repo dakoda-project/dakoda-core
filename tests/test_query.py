@@ -1,4 +1,4 @@
-from dakoda.query import field, value, view, annotation, count, mean_filter, eq
+from dakoda.query import field, value, view, annotation, count, mean_filter, eq, AndPredicate
 import polars as pl
 
 
@@ -55,6 +55,8 @@ def test_aggregation(sample_index):
     assert all(doc_ids == pl.Series([5]))
 
 def test_syntactic_sugar(cas_index):
-    q = annotation('POS') & eq('VVFIN')
+    # should all be equivalent
     p = annotation('POS') & value('VVFIN', 'eq')
-    assert all(q.evaluate(cas_index) == p.evaluate(cas_index))
+    q = annotation('POS') & eq('VVFIN')
+    r = AndPredicate([annotation('POS'), eq('VVFIN')])
+    assert all(q.evaluate(cas_index) == p.evaluate(cas_index)) and all(q.evaluate(cas_index) == r.evaluate(cas_index))

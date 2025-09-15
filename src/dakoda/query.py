@@ -212,6 +212,7 @@ def value(val: Any, operator: Operator = 'eq') -> ColumnPredicate:
     """Create a predicate for the value column"""
     return ColumnPredicate('value', operator, val)
 
+# additional convenience methods for value predicates
 def eq(val: Any) -> ColumnPredicate:
     return ColumnPredicate('value', 'eq', val)
 
