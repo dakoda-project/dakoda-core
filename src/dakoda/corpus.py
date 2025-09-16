@@ -11,7 +11,7 @@ from cassis import Cas
 
 from dakoda.metadata import MetaData
 from dakoda.query import Predicate
-from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fieldname, view_to_name
+from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fieldname, view_to_name, DocumentView
 
 from dataclasses import dataclass
 
@@ -25,7 +25,7 @@ class DakodaDocument:
         self._cas = cas
         self.id = id
         self.corpus = corpus
-        # todo: _meta
+        self._meta = None
 
         if corpus is None and cas is None:
             raise ValueError("Cas and Corpus cannot be None.")
@@ -42,24 +42,29 @@ class DakodaDocument:
 
         return self._cas
 
-
     @property
     def meta(self) -> MetaData:
-        cached_file = self.corpus.path / f'{self.id}.json'
-        if cached_file.is_file():
-            try:
-                return MetaData.from_json_file(cached_file)
-            except Exception as e:
-                pass # todo: log
+        if self._meta is None:
+            cached_file = self.corpus.path / f'{self.id}.json'
+            if cached_file.is_file():
+                self._meta = MetaData.from_json_file(cached_file)
+            else:
+                self._meta = MetaData.from_cas(self.cas)
+                with open(cached_file, 'w') as f:
+                    f.write(self._meta.to_json())
 
-        meta = MetaData.from_cas(self.cas)
-        try:
-            with open(cached_file, 'w') as f:
-                f.write(meta.to_json())
-        except Exception as e:
-            pass # todo: log
+        return self._meta
 
-        return meta
+    def view(self, view_name):
+        return DocumentView(view_name, self.cas)
+
+    @property
+    def learner(self):
+        return self.view('ctok')
+
+    @property
+    def target_hypothesis(self):
+        return self.view('mixtral_th1')
 
 
 class DakodaCorpus:
