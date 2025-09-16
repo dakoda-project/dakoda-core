@@ -84,6 +84,32 @@ def test_document(test_cas, comigs):
     )
     assert len(doc.text) != 0
 
+    assert doc.learner.sentences[0].span == (0, 69)
+    assert len(doc.learner.sentences[0].text) == 69
+
+    pos = doc.learner.pos_tags[0]
+    pos_th = doc.target_hypothesis.pos_tags[0]
+
+    assert pos.span == (0, 4) and pos.value == 'ART'
+    assert pos_th.span == (0, 4) and pos_th.value == 'ART'
+    assert pos_th == pos
+
+    assert doc.learner.text != doc.target_hypothesis.text
+    assert not all(pos == pos_th for pos, pos_th in zip(doc.learner.pos_tags, doc.target_hypothesis.pos_tags))
+
+    learner = doc.learner
+    annos = [
+        learner.pos_tags,
+        learner.tokens,
+        learner.sentences,
+        learner.lemmas,
+        learner.stages
+    ]
+    assert all(len(anno) != 0 for anno in annos)
+
+    assert len(doc.text_diff()) > 0
+
+    assert doc.text_diff('ctok', 'ctok') != doc.text_diff()
 
 def test_cas_indexer(test_corpus):
     indexer = CasIndexer()
