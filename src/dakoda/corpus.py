@@ -6,6 +6,8 @@ from collections.abc import Iterable, Callable
 from pathlib import Path
 from typing import Iterator, Literal, List
 
+import difflib
+
 import polars as pl
 from cassis import Cas
 
@@ -60,11 +62,19 @@ class DakodaDocument:
 
     @property
     def learner(self):
-        return self.view('ctok')
+        return self.view(view_to_name['learner'])
 
     @property
     def target_hypothesis(self):
-        return self.view('mixtral_th1')
+        return self.view(view_to_name['target_hypothesis'])
+
+
+    def text_diff(self, view_1: str = 'learner', view_2: str = 'target_hypothesis'):
+        view_1 = view_to_name.get(view_1, view_1)
+        view_2 = view_to_name.get(view_2, view_2)
+        tokens_1 = [token.text for token in self.view(view_1).tokens]
+        tokens_2 = [token.text for token in self.view(view_2).tokens]
+        return ''.join(difflib.context_diff(tokens_1, tokens_2))
 
 
 class DakodaCorpus:

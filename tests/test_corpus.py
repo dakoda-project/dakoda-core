@@ -107,6 +107,10 @@ def test_document(test_cas, comigs):
     ]
     assert all(len(anno) != 0 for anno in annos)
 
+    assert len(doc.text_diff()) > 0
+
+    assert doc.text_diff('ctok', 'ctok') != doc.text_diff()
+
 def test_cas_indexer(test_corpus):
     indexer = CasIndexer()
 
