@@ -34,17 +34,14 @@ T_META = "de.tudarmstadt.ukp.dkpro.core.api.metadata.type.MetaDataStringField"
 T_STAGE = "org.dakoda.Stage"
 
 type_to_fieldname = {
-    T_TOKEN: 'coveredText',
-    T_LEMMA: 'value',
-    T_POS: 'PosValue',
-    T_SENT: 'coveredText',
-    T_STAGE: 'name'
+    T_TOKEN: "coveredText",
+    T_LEMMA: "value",
+    T_POS: "PosValue",
+    T_SENT: "coveredText",
+    T_STAGE: "name",
 }
 
-view_to_name = {
-    'learner': 'ctok',
-    'target_hypothesis': 'mixtral_th1'
-}
+view_to_name = {"learner": "ctok", "target_hypothesis": "mixtral_th1"}
 
 
 @dataclass
@@ -63,7 +60,9 @@ class DocumentView:
         return self._view.select(type_name)
 
     def annotation(self, type_name: str):
-        return [TypeAnnotation(type_name, anno) for anno in self._raw_annotation(type_name)]
+        return [
+            TypeAnnotation(type_name, anno) for anno in self._raw_annotation(type_name)
+        ]
 
     @property
     def pos_tags(self):
@@ -101,15 +100,15 @@ class TypeAnnotation:
 
     @property
     def span(self):
-        return self.annotation.get('begin'), self.annotation.get('end')
+        return self.annotation.get("begin"), self.annotation.get("end")
 
     def __repr__(self):
         has_own_value = type_to_fieldname[self.type_name] is not None
-        short_type_name = self.type_name.split('.')[-1]
+        short_type_name = self.type_name.split(".")[-1]
         if has_own_value:
-            return f'{short_type_name}({self.text}[{self.value}])'
+            return f"{short_type_name}({self.text}[{self.value}])"
         else:
-            return f'{short_type_name}({self.text})'
+            return f"{short_type_name}({self.text})"
 
     def __str__(self):
         return self.__repr__()
@@ -121,6 +120,8 @@ class TypeAnnotation:
         if not isinstance(other, TypeAnnotation):
             return False
 
-        return (self.type_name == other.type_name and
-                self.span == other.span and
-                self.value == other.value)
+        return (
+            self.type_name == other.type_name
+            and self.span == other.span
+            and self.value == other.value
+        )

@@ -13,12 +13,19 @@ from cassis import Cas
 
 from dakoda.metadata import MetaData
 from dakoda.query import Predicate
-from dakoda.uima import load_cas_from_file, load_dakoda_typesystem, type_to_fieldname, view_to_name, DocumentView
+from dakoda.uima import (
+    load_cas_from_file,
+    load_dakoda_typesystem,
+    type_to_fieldname,
+    view_to_name,
+    DocumentView,
+)
 
 from dataclasses import dataclass
 
-DataSubset = Literal['cas', 'meta']
-DATA_SUBSETS = {'cas', 'meta'}
+DataSubset = Literal["cas", "meta"]
+DATA_SUBSETS = {"cas", "meta"}
+
 
 class DakodaDocument:
     def __init__(
@@ -39,7 +46,9 @@ class DakodaDocument:
     @property
     def cas(self) -> Cas:
         if self._cas is None:
-            cas = load_cas_from_file(self.corpus.path / f'{self.id}.xmi', ts=self.corpus.ts)
+            cas = load_cas_from_file(
+                self.corpus.path / f"{self.id}.xmi", ts=self.corpus.ts
+            )
             self._cas = cas
 
         return self._cas
@@ -47,12 +56,12 @@ class DakodaDocument:
     @property
     def meta(self) -> MetaData:
         if self._meta is None:
-            cached_file = self.corpus.path / f'{self.id}.json'
+            cached_file = self.corpus.path / f"{self.id}.json"
             if cached_file.is_file():
                 self._meta = MetaData.from_json_file(cached_file)
             else:
                 self._meta = MetaData.from_cas(self.cas)
-                with open(cached_file, 'w') as f:
+                with open(cached_file, "w") as f:
                     f.write(self._meta.to_json())
 
         return self._meta
@@ -62,19 +71,18 @@ class DakodaDocument:
 
     @property
     def learner(self):
-        return self.view(view_to_name['learner'])
+        return self.view(view_to_name["learner"])
 
     @property
     def target_hypothesis(self):
-        return self.view(view_to_name['target_hypothesis'])
+        return self.view(view_to_name["target_hypothesis"])
 
-
-    def text_diff(self, view_1: str = 'learner', view_2: str = 'target_hypothesis'):
+    def text_diff(self, view_1: str = "learner", view_2: str = "target_hypothesis"):
         view_1 = view_to_name.get(view_1, view_1)
         view_2 = view_to_name.get(view_2, view_2)
         tokens_1 = [token.text for token in self.view(view_1).tokens]
         tokens_2 = [token.text for token in self.view(view_2).tokens]
-        return ''.join(difflib.context_diff(tokens_1, tokens_2))
+        return "".join(difflib.context_diff(tokens_1, tokens_2))
 
 
 class DakodaCorpus:
@@ -94,8 +102,8 @@ class DakodaCorpus:
             self._id_to_doc[doc.id] = doc
 
         self._search_index: dict[DataSubset, pl.DataFrame | None] = {
-            'cas': None,
-            'meta': None
+            "cas": None,
+            "meta": None,
         }
 
     def __repr__(self):
@@ -139,23 +147,25 @@ class DakodaCorpus:
         start, stop, step = indices_slice.indices(len(self))
         return (self._get_by_index(i) for i in range(start, stop, step))
 
-    def _build_index(self, source_type: DataSubset | None=None, force_rebuild: bool = False):
+    def _build_index(
+        self, source_type: DataSubset | None = None, force_rebuild: bool = False
+    ):
         if source_type is None:
-            self._build_index('cas')
-            self._build_index('meta')
+            self._build_index("cas")
+            self._build_index("meta")
             return
 
         if self._search_index.get(source_type) is not None and not force_rebuild:
             return
 
-        if source_type == 'cas':
+        if source_type == "cas":
             indexer = CasIndexer()
 
             cache = IndexCache(self, source_type)
             if cache.is_cached and not force_rebuild:
                 self._search_index[source_type] = cache.read()
                 return
-        elif source_type == 'meta':
+        elif source_type == "meta":
             indexer = MetaDataIndexer()
             cache = None
         else:
@@ -176,7 +186,7 @@ class DakodaCorpus:
     def _query(self, q: Predicate, subset: DataSubset | None = None) -> List[int]:
         if subset in DATA_SUBSETS:
             idx = self._get_search_index(subset)
-            return  q.documents(idx).to_list()
+            return q.documents(idx).to_list()
         elif subset is None:
             result: set[int] = set()
             for subset in DATA_SUBSETS:
@@ -213,11 +223,11 @@ class FieldMapping:
 
 class Indexer(ABC):
     default_field_mappings = {
-        'idx': FieldMapping('idx', pl.Int64),
-        'view': FieldMapping('view', pl.Categorical),
-        'type': FieldMapping('type', pl.Categorical),
-        'field': FieldMapping('field', pl.Categorical),
-        'value': FieldMapping('value', pl.Object)
+        "idx": FieldMapping("idx", pl.Int64),
+        "view": FieldMapping("view", pl.Categorical),
+        "type": FieldMapping("type", pl.Categorical),
+        "field": FieldMapping("field", pl.Categorical),
+        "value": FieldMapping("value", pl.Object),
     }
 
     def __init__(self, field_mappings: dict[str, FieldMapping] | None = None):
@@ -227,14 +237,17 @@ class Indexer(ABC):
 
     @property
     def schema(self):
-        return {field_mapping.name: field_mapping.dtype for field_mapping in self.field_mappings.values()}
+        return {
+            field_mapping.name: field_mapping.dtype
+            for field_mapping in self.field_mappings.values()
+        }
 
     @property
     def column_mapping(self):
         return {name: mapping.name for name, mapping in self.field_mappings.items()}
 
     @abstractmethod
-    def to_entries(self, doc: DakodaDocument, idx = None):
+    def to_entries(self, doc: DakodaDocument, idx=None):
         pass
 
     def index_corpus(self, corpus):
@@ -250,14 +263,14 @@ class Indexer(ABC):
 
 class CasIndexer(Indexer):
     default_field_mappings = {
-        'idx': FieldMapping('idx', pl.Int64),
-        'view': FieldMapping('view', pl.Categorical),
-        'type': FieldMapping('type', pl.Categorical),
-        'field': FieldMapping('field', pl.Categorical),
-        'value': FieldMapping('value', pl.Utf8)
+        "idx": FieldMapping("idx", pl.Int64),
+        "view": FieldMapping("view", pl.Categorical),
+        "type": FieldMapping("type", pl.Categorical),
+        "field": FieldMapping("field", pl.Categorical),
+        "value": FieldMapping("value", pl.Utf8),
     }
 
-    def to_entries(self, doc: DakodaDocument, idx = None):
+    def to_entries(self, doc: DakodaDocument, idx=None):
         entries = []
         cas = doc.cas
         for view_name, cas_view_name in view_to_name.items():
@@ -265,16 +278,16 @@ class CasIndexer(Indexer):
             for type_name, value_name in type_to_fieldname.items():
                 annotations = view.select(type_name)
                 for annotation in annotations:
-                    if value_name == 'coveredText':
+                    if value_name == "coveredText":
                         value = annotation.get_covered_text()
                     else:
                         value = annotation[value_name]
                     entry = {
-                        self.column_mapping.get('idx'): idx,
-                        self.column_mapping.get('view'): view_name,
-                        self.column_mapping.get('type'): type_name.split('.')[-1],
-                        self.column_mapping.get('field'): value_name,
-                        self.column_mapping.get('value'): value
+                        self.column_mapping.get("idx"): idx,
+                        self.column_mapping.get("view"): view_name,
+                        self.column_mapping.get("type"): type_name.split(".")[-1],
+                        self.column_mapping.get("field"): value_name,
+                        self.column_mapping.get("value"): value,
                     }
                     entries.append(entry)
         return entries
@@ -282,21 +295,28 @@ class CasIndexer(Indexer):
 
 class MetaDataIndexer(Indexer):
 
-    def to_entries(self, doc: DakodaDocument, idx = None):
+    def to_entries(self, doc: DakodaDocument, idx=None):
         entries = []
         for key, value in doc.meta.iter_flat():
-            entries.append({
-                self.column_mapping.get('idx'): idx,
-                self.column_mapping.get('view'): None,
-                self.column_mapping.get('type'): None,
-                self.column_mapping.get('field'): key,
-                self.column_mapping.get('value'): value,
-            })
+            entries.append(
+                {
+                    self.column_mapping.get("idx"): idx,
+                    self.column_mapping.get("view"): None,
+                    self.column_mapping.get("type"): None,
+                    self.column_mapping.get("field"): key,
+                    self.column_mapping.get("value"): value,
+                }
+            )
         return entries
 
 
 class IndexCache:
-    def __init__(self, corpus: DakodaCorpus, cache_name: DataSubset, cache_dir: str | Path | None = None):
+    def __init__(
+        self,
+        corpus: DakodaCorpus,
+        cache_name: DataSubset,
+        cache_dir: str | Path | None = None,
+    ):
         self.corpus = corpus
         self.cache_name = cache_name
         if cache_dir is None:

@@ -54,7 +54,8 @@ from dakoda.metadata.constants import (
     TaskStimulusType,
     TopicType,
     TrgLangInputType,
-    WordOrderType, CustomJSONEncoder,
+    WordOrderType,
+    CustomJSONEncoder,
 )
 
 
@@ -470,15 +471,15 @@ class CorpusDesign:
             "min_occurs": 1,
         },
     )
-    corpus_design_timeOfDataCollection: Optional[
-        Union[XmlPeriod, str, NaString]
-    ] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "required": True,
-            "pattern": r"\d{4}-\d{4}",
-        },
+    corpus_design_timeOfDataCollection: Optional[Union[XmlPeriod, str, NaString]] = (
+        field(
+            default=None,
+            metadata={
+                "type": "Element",
+                "required": True,
+                "pattern": r"\d{4}-\d{4}",
+            },
+        )
     )
 
     @dataclass
@@ -918,15 +919,15 @@ class LanguageExposure:
             "min_exclusive": 0,
         },
     )
-    learner_language_exposure_durationOfUse: Optional[
-        Union[int, float, NaString]
-    ] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "required": True,
-            "min_exclusive": 0,
-        },
+    learner_language_exposure_durationOfUse: Optional[Union[int, float, NaString]] = (
+        field(
+            default=None,
+            metadata={
+                "type": "Element",
+                "required": True,
+                "min_exclusive": 0,
+            },
+        )
     )
     learner_language_exposure_input: Optional[TrgLangInputType] = field(
         default=None,
@@ -1083,16 +1084,16 @@ class LearnerLanguageProficiency:
             "required": True,
         },
     )
-    learner_language_proficiency_cTestPercent: Optional[
-        Union[Decimal, NaString]
-    ] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "required": True,
-            "min_inclusive": Decimal("0"),
-            "max_inclusive": Decimal("100"),
-        },
+    learner_language_proficiency_cTestPercent: Optional[Union[Decimal, NaString]] = (
+        field(
+            default=None,
+            metadata={
+                "type": "Element",
+                "required": True,
+                "min_inclusive": Decimal("0"),
+                "max_inclusive": Decimal("100"),
+            },
+        )
     )
     learner_language_proficiency_cTestType: Optional[str] = field(
         default=None,
@@ -1129,14 +1130,14 @@ class LearnerLanguageProficiency:
             "required": True,
         },
     )
-    learner_language_proficiency_assignmentMethod: List[
-        ProficiencyAssessmentMethod
-    ] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "min_occurs": 1,
-        },
+    learner_language_proficiency_assignmentMethod: List[ProficiencyAssessmentMethod] = (
+        field(
+            default_factory=list,
+            metadata={
+                "type": "Element",
+                "min_occurs": 1,
+            },
+        )
     )
     learner_language_proficiency_documentation: Optional[str] = field(
         default=None,
@@ -2313,17 +2314,19 @@ class MetaData(DocumentType):
     def to_dict(self):
         return asdict(self)
 
-    def to_records(self, idx: int | None=None):
+    def to_records(self, idx: int | None = None):
         entries = []
         for key, value in self.iter_flat():
-            entries.append({
-                'idx': idx,
-                'field': key,
-                'value': value,
-            })
+            entries.append(
+                {
+                    "idx": idx,
+                    "field": key,
+                    "value": value,
+                }
+            )
         return entries
 
-    def to_df(self, idx: int | None=None):
+    def to_df(self, idx: int | None = None):
         entries = self.to_records(idx=idx)
         schema = {
             "idx": pl.Int64,

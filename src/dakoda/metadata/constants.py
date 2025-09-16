@@ -11,6 +11,7 @@ from importlib_resources import files
 from importlib_resources.abc import Traversable
 from xsdata.models.datatype import XmlPeriod
 
+
 class CustomJSONEncoder(json.JSONEncoder):
     """JSON Encoder that handles all dataclasses."""
 
