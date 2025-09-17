@@ -32,4 +32,5 @@ pythonpath = [
 ]
 filterwarnings = [
     "ignore::polars.exceptions.PolarsInefficientMapWarning",
+    "ignore::xsdata.exceptions.ConverterWarning"
 ]

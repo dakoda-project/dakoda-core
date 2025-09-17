@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 import io
 import json
 from dataclasses import dataclass, field, fields, is_dataclass, asdict
@@ -12,6 +13,7 @@ from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import JsonParser
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.models.datatype import XmlDate, XmlPeriod
+from xsdata.exceptions import ConverterWarning
 
 from dakoda.uima import T_META
 from dakoda.metadata.constants import (
@@ -58,6 +60,7 @@ from dakoda.metadata.constants import (
     CustomJSONEncoder,
 )
 
+warnings.filterwarnings("ignore", category=ConverterWarning)
 
 @dataclass
 class Annotation:
