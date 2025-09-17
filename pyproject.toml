@@ -30,3 +30,6 @@ build-backend = "poetry.core.masonry.api"
 pythonpath = [
   "src"
 ]
+filterwarnings = [
+    "ignore::polars.exceptions.PolarsInefficientMapWarning",
+]

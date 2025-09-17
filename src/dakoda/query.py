@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Literal, Callable
+
 import polars as pl
+from polars.exceptions import PolarsInefficientMapWarning
+
+# when users use lambdas this warning might be thrown. as users are not supposed to use polars directly, we suppress it.
+warnings.filterwarnings("ignore", category=PolarsInefficientMapWarning)
 
 Operator = Literal[
     "eq",
@@ -267,7 +273,7 @@ class AggregationPredicate(Predicate):
         ]
 
         # Return boolean mask for all rows indicating which belong to passing groups / documents
-        return df[self.group_by].is_in(passing_groups)
+        return df[self.group_by].is_in(passing_groups.to_list())
 
 
 # Convenience functions for creating predicates
