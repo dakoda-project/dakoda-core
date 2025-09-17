@@ -20,7 +20,7 @@ def test_serialization_deserialization_with_tmpfile(test_corpus):
         tmp_path = Path(tmp_file.name)
 
         try:
-            tmp_file.write(meta.to_json())
+            tmp_file.write(meta.to_json_string())
             tmp_file.flush()  # Ensure data is written
 
             deserialized_meta = MetaData.from_json_file(tmp_path)

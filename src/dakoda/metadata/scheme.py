@@ -2289,19 +2289,51 @@ def _traverse_dataclass_fields(obj: Any) -> Iterator[Tuple[str, Any]]:
 
 @dataclass
 class MetaData(DocumentType):
+    """Structured metadata container for Dakoda documents.
+    """
     _json_parser = JsonParser(context=XmlContext(), config=ParserConfig())
 
     @classmethod
     def from_json_string(cls, json_string):
+        """Create MetaData instance from JSON string.
+
+        Args:
+            json_string: JSON string containing metadata.
+
+        Returns:
+            MetaData instance parsed from the JSON string.
+        """
         return cls._json_parser.parse(io.StringIO(json_string), cls)
 
     @classmethod
     def from_json_file(cls, filepath):
+        """Create MetaData instance from JSON file.
+
+        Args:
+            filepath: Path to JSON file containing metadata.
+
+        Returns:
+            MetaData instance loaded from the file.
+        """
         with open(filepath) as f:
             return cls._json_parser.parse(f, cls)
 
     @classmethod
     def from_cas(cls, cas):
+        """Extract MetaData from CAS metadata annotation.
+
+        Searches for metadata annotation in the CAS and parses
+        it as JSON to create a MetaData instance.
+
+        Args:
+            cas: CAS object containing structured metadata annotation.
+
+        Returns:
+            MetaData instance extracted from CAS.
+
+        Raises:
+            ValueError: If no structured metadata found in the CAS.
+        """
         for meta in cas.select(T_META):
             if meta.get("key") == "structured_metadata":
                 return cls.from_json_string(meta.get("value"))
@@ -2312,12 +2344,27 @@ class MetaData(DocumentType):
         name = "document"
 
     def iter_flat(self) -> Iterator[Tuple[str, Any]]:
+        """Iterate over flattened metadata fields.
+
+        Traverses nested dataclass fields and yields flat key-value pairs
+        suitable for search indexing.
+
+        Returns:
+            Iterator of (field_name, value) tuples for all metadata fields.
+        """
         return _traverse_dataclass_fields(self)
 
-    def to_dict(self):
-        return asdict(self)
-
     def to_records(self, idx: int | None = None):
+        """Convert metadata to list of record dictionaries.
+
+        Creates a list of dictionaries, with each metadata field as a separate record.
+
+        Args:
+            idx: Optional document index to include in records.
+
+        Returns:
+            List of dictionaries with idx, field, and value keys.
+        """
         entries = []
         for key, value in self.iter_flat():
             entries.append(
@@ -2329,14 +2376,15 @@ class MetaData(DocumentType):
             )
         return entries
 
-    def to_df(self, idx: int | None = None):
-        entries = self.to_records(idx=idx)
-        schema = {
-            "idx": pl.Int64,
-            "field": pl.Utf8,
-            "value": pl.Object,
-        }
-        return pl.DataFrame(entries, schema=schema)
+    def to_json_string(self):
+        """Serialize metadata to JSON string.
 
-    def to_json(self):
+        Uses CustomJSON encoder to handle complex data types.
+
+        Returns:
+            JSON string representation of the metadata.
+
+        See Also:
+            dakoda.metadata.CustomJSONEncoder.
+        """
         return json.dumps(asdict(self), cls=CustomJSONEncoder)

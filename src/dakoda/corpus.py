@@ -1,3 +1,9 @@
+"""Dakoda corpus and document management.
+
+This module provides classes for managing collections of linguistic documents
+in the Dakoda format.
+"""
+
 from __future__ import annotations
 
 import random
@@ -28,6 +34,18 @@ DATA_SUBSETS = {"cas", "meta"}
 
 
 class DakodaDocument:
+    """Represents a single document in a Dakoda corpus.
+
+    Provides access to document data, i.e. text, annotations and metadata.
+
+    Args:
+        cas: Optional CAS object containing document annotations.
+        id: Unique identifier for the document.
+        corpus: Parent corpus containing this document.
+
+    Raises:
+        ValueError: If both cas and corpus are None.
+    """
     def __init__(
         self, cas: Cas | None, id: str | None = None, corpus: DakodaCorpus | None = None
     ):
@@ -41,10 +59,23 @@ class DakodaDocument:
 
     @property
     def text(self) -> str:
+        """Get the raw text content of the document, i.e. the text the learner produced.
+
+        Returns:
+            The document's text.
+        """
         return self.cas.sofa_string
 
     @property
     def cas(self) -> Cas:
+        """Get the CAS object for this document.
+
+        If the CAS is not already loaded, loads it from the corresponding
+        XMI file using the corpus typesystem.
+
+        Returns:
+            The CAS object containing document annotations.
+        """
         if self._cas is None:
             cas = load_cas_from_file(
                 self.corpus.path / f"{self.id}.xmi", ts=self.corpus.ts
@@ -55,6 +86,14 @@ class DakodaDocument:
 
     @property
     def meta(self) -> MetaData:
+        """Get document metadata with caching support.
+
+        Attempts to load cached metadata from JSON file first, otherwise
+        extracts metadata from CAS and caches it for future use.
+
+        Returns:
+            MetaData object containing document metadata.
+        """
         if self._meta is None:
             cached_file = self.corpus.path / f"{self.id}.json"
             if cached_file.is_file():
@@ -62,7 +101,7 @@ class DakodaDocument:
             else:
                 self._meta = MetaData.from_cas(self.cas)
                 with open(cached_file, "w") as f:
-                    f.write(self._meta.to_json())
+                    f.write(self._meta.to_json_string())
 
         return self._meta
 
@@ -71,13 +110,35 @@ class DakodaDocument:
 
     @property
     def learner(self):
+        """Get the learner view of the document and all attached annotations.
+
+        Returns:
+            DocumentView object for the learner view.
+        """
         return self.view(view_to_name["learner"])
 
     @property
     def target_hypothesis(self):
+        """Get the target hypothesis view of the document.
+
+        Returns:
+            DocumentView object for the target hypothesis view.
+        """
         return self.view(view_to_name["target_hypothesis"])
 
-    def text_diff(self, view_1: str = "learner", view_2: str = "target_hypothesis"):
+    def text_diff(self, view_1: str = "learner", view_2: str = "target_hypothesis") -> str:
+        """Generate a string representing the difference between texts in different document views.
+
+        Uses a view's tokens to generate the text to compare. If a view has not been tokenized, this will fail.
+
+        Args:
+            view_1: Name of the first view to compare.
+            view_2: Name of the second view to compare.
+
+        Returns:
+            String containing the context diff between the two views.
+        """
+
         view_1 = view_to_name.get(view_1, view_1)
         view_2 = view_to_name.get(view_2, view_2)
         tokens_1 = [token.text for token in self.view(view_1).tokens]
@@ -86,6 +147,18 @@ class DakodaDocument:
 
 
 class DakodaCorpus:
+    """A collection of Dakoda documents.
+
+    Manages a corpus of documents stored as XMI files. Provides search functionality, and lazy loading. Supports various
+    indexing strategies for different data subsets.
+
+
+    Args:
+        path: Path to the directory containing corpus files.
+
+    See Also:
+        dakoda.query for options to filter the corpus.
+    """
     ts = load_dakoda_typesystem()
 
     def __init__(self, path):
@@ -197,18 +270,40 @@ class DakodaCorpus:
 
     @property
     def size(self) -> int:
+        """Get the number of documents in the corpus.
+
+        Returns:
+            Integer count of documents in the corpus.
+        """
         return len(self)
 
     @property
     def docs(self):
+        """Get a copy of all documents in the corpus.
+
+        Returns:
+            List copy of all DakodaDocument objects in the corpus.
+        """
         return self._docs.copy()
 
     @property
     def document_paths(self):
+        """Get a copy of all document file paths in the corpus.
+
+        Returns:
+            List copy of Path objects for all XMI files in the corpus.
+        """
         return self._document_paths.copy()
 
     def random_doc(self) -> DakodaDocument:
-        """Return a random document from the corpus."""
+        """Return a random document from the corpus.
+
+        Returns:
+            A randomly selected DakodaDocument from the corpus.
+
+        Raises:
+            ValueError: If the corpus contains no documents.
+        """
         if not self._docs:
             raise ValueError("No documents in the corpus.")
         return random.choice(self._docs)
