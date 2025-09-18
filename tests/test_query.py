@@ -110,6 +110,7 @@ def test_syntactic_sugar(cas_index):
 
 
 def test_corpus_queries(test_corpus):
+    test_corpus._build_index(force_rebuild=True)
     q = annotation("Token")  # check if document has at least one token annotation
     docs = list(test_corpus[q])
     assert len(docs) == len(test_corpus)
@@ -118,7 +119,7 @@ def test_corpus_queries(test_corpus):
     docs = test_corpus[q]
     assert all(isinstance(doc, DakodaDocument) for doc in docs)
 
-    q = field("corpus_admin_acronym") & value("SWIKO")
+    q = field("corpus_admin_acronym") & value("MERLIN")
     docs = list(test_corpus[q])
     assert len(docs) == len(test_corpus)
 

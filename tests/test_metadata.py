@@ -5,8 +5,8 @@ from pathlib import Path
 
 def test_meta(test_cas):
     meta = MetaData.from_cas(test_cas)
-    assert meta.text.text_tokenCount == 243
-    assert meta.corpus.administrative.corpus_admin_acronym == "ComiGs"
+    assert meta.text.text_tokenCount == 119
+    assert meta.corpus.administrative.corpus_admin_acronym == "MERLIN"
 
 
 def test_serialization_deserialization_with_tmpfile(test_corpus):

@@ -84,14 +84,14 @@ def test_document(test_cas, comigs):
     )
     assert len(doc.text) != 0
 
-    assert doc.learner.sentences[0].span == (0, 69)
-    assert len(doc.learner.sentences[0].text) == 69
+    assert doc.learner.sentences[0].span == (0, 113)
+    assert len(doc.learner.sentences[0].text) == 113
 
     pos = doc.learner.pos_tags[0]
     pos_th = doc.target_hypothesis.pos_tags[0]
 
-    assert pos.span == (0, 4) and pos.value == "ART"
-    assert pos_th.span == (0, 4) and pos_th.value == "ART"
+    assert pos.span == (0, 3) and pos.value == "NE"
+    assert pos_th.span == (0, 3) and pos_th.value == "NE"
     assert pos_th == pos
 
     assert doc.learner.text != doc.target_hypothesis.text

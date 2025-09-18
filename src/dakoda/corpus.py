@@ -106,6 +106,7 @@ class DakodaDocument:
         return self._meta
 
     def view(self, view_name):
+        view_name = view_to_name.get(view_name, view_name)
         return DocumentView(view_name, self.cas)
 
     @property

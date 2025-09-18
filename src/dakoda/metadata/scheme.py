@@ -11,6 +11,7 @@ from typing import List, Optional, Union, Any, Tuple, Iterator
 import polars as pl
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import JsonParser
+from xsdata.formats.converter import converter
 from xsdata.formats.dataclass.parsers.config import ParserConfig
 from xsdata.models.datatype import XmlDate, XmlPeriod
 from xsdata.exceptions import ConverterWarning
@@ -114,6 +115,13 @@ class Annotation:
             "type": "Element",
             "required": True,
         },
+    )
+    annotation_note: List[str] = field(
+        default_factory=lambda: [NaString.NOT_AVAILABLE],
+        metadata={
+            "type": "Element",
+            "min_occurs": 1,
+        }
     )
     annotation_tool: Optional[str] = field(
         default=None,
@@ -389,7 +397,7 @@ class CorpusDesign:
     :ivar corpus_design_isComparableDataIncluded: Does the corpus
         include comparison data? An equivalent field in LC-meta is
         `corpus_comparable_data_included`.
-    :ivar corpus_design_l1Language: L1 language(s). An equivalent field
+    :ivar corpus_design_l1Languages: L1 language(s). An equivalent field
         in LC-meta is `corpus_L1_language`.
     :ivar corpus_design_l1Type: L1 constellation. If all participants
         share one L1: mono; if there are multiple L1s: multi . There is
@@ -439,7 +447,7 @@ class CorpusDesign:
             "required": True,
         },
     )
-    corpus_design_l1Language: List[LanguageNameDe] = field(
+    corpus_design_l1Languages: List[LanguageNameDe] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -769,6 +777,32 @@ class CorpusSubcorpus:
             "min_occurs": 1,
         },
     )
+    corpus_subcorpus_size: CorpusSubCorpusSize = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "min_occurs": 1,
+        },
+    )
+
+@dataclass
+class CorpusSubCorpusSize:
+    class Meta:
+        name = "Corpus_Subcorpus_Size"
+    value: str = field(
+        default="-1",
+        metadata={
+            "type": "Element",
+            "min_occurs": 1,
+        }
+    )
+    unit: str = field(
+        default="KB",
+        metadata={
+            "type": "Element",
+        }
+    )
+
 
 
 @dataclass
@@ -885,7 +919,7 @@ class LanguageExposure:
         learner mainly has learnt German (specified as a country or
         territory according to ISO 3166-ALPHA-3). A related field in
         CMSCL is `learner_target_language_learning_context`.
-    :ivar learner_language_exposure_WasInEnvironment: Was the learner/L1
+    :ivar learner_language_exposure_wasInEnvironment: Was the learner/L1
         speaker in a country/region where the target language is spoken
         at the time of data collection? A related field in CMSCL is
         `learner_target_language_environment`.
@@ -969,12 +1003,20 @@ class LanguageExposure:
             "required": True,
         },
     )
-    learner_language_exposure_WasInEnvironment: Optional[Union[bool, NaString]] = field(
+    learner_language_exposure_wasInEnvironment: Optional[Union[bool, NaString]] = field(
         default=None,
         metadata={
             "type": "Element",
             "required": True,
         },
+    )
+    # todo: valid values?
+    learner_language_exposure_wasInstructed: str = field(
+        default="notApplicable",
+        metadata={
+            "type": "Element",
+            "required": True,
+        }
     )
     learner_language_WasInstructed: Optional[Union[bool, NaString]] = field(
         default=None,
@@ -1258,6 +1300,14 @@ class ProductionSetting:
             "min_occurs": 1,
         },
     )
+    # todo: values?
+    productionSetting_schoolGrade: str = field(
+        default="notApplicable",
+        metadata={
+            "type": "Element",
+            "required": True,
+        }
+    )
 
 
 @dataclass
@@ -1282,6 +1332,13 @@ class Sociodemographics:
         collected. There is no related field in LC-meta .
     """
 
+    learner_socio_ageProduction: int = field(
+        default=-1,
+        metadata={
+            "type": "Element",
+            "required": True,
+        },
+    )
     learner_socio_birthplace: CountryType = field(
         default=CountryType.NOT_AVAILABLE,
         metadata={
@@ -1331,7 +1388,6 @@ class Sociodemographics:
             "required": True,
         },
     )
-
 
 @dataclass
 class TargetHypothesis:
@@ -1432,6 +1488,20 @@ class TextAnnotation:
         },
     )
     text_annotation_hasTargetHypotheses: Union[bool, NaString] = field(
+        default=NaString.NOT_AVAILABLE,
+        metadata={
+            "type": "Element",
+            "required": True,
+        },
+    )
+    text_annotation_hasBorrowedAnnotation_orig: Union[bool, NaString] = field(
+        default=NaString.NOT_AVAILABLE,
+        metadata={
+            "type": "Element",
+            "required": True,
+        },
+    )
+    text_annotation_hasTargetHypotheses_orig: Union[bool, NaString] = field(
         default=NaString.NOT_AVAILABLE,
         metadata={
             "type": "Element",
@@ -1566,7 +1636,7 @@ class TextProficiency:
             "required": True,
         },
     )
-    text_proficiency_official_languageTestingScore: str = field(
+    text_proficiency_officialLanguageTestingScore: str = field(
         default="notAvailable",
         metadata={
             "type": "Element",
@@ -1690,7 +1760,37 @@ class Corpus:
             "required": True,
         },
     )
+    annotation: CorpusAnnotation = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "required": False,
+        }
+    )
 
+@dataclass
+class CorpusAnnotation:
+    corpus_annotation_hasBorrowedAnnotation_orig: bool = field(
+        default=False,
+        metadata={
+            "type": "Element",
+            "required": True,
+        }
+    )
+    corpus_annotation_hasErrorAnnotation_orig: bool = field(
+        default=False,
+        metadata={
+            "type": "Element",
+            "required": True,
+        }
+    )
+    corpus_annotation_hasTargetHypotheses_orig: bool = field(
+        default=False,
+        metadata={
+            "type": "Element",
+            "required": True,
+        }
+    )
 
 @dataclass
 class LanguageOfSpeaker:
@@ -1861,6 +1961,13 @@ class TaskBlock:
         metadata={
             "type": "Element",
             "min_occurs": 1,
+        },
+    )
+    task_comparison_otherCorpora: str = field(
+        default="notAvailable", # todo: check
+        metadata={
+            "type": "Element",
+            "required": True,
         },
     )
     task_description: str = field(
@@ -2286,6 +2393,17 @@ def _traverse_dataclass_fields(obj: Any) -> Iterator[Tuple[str, Any]]:
                 field_value = field_value.value
             yield (field.name, field_value)
 
+# xml dates are not correctly deserialised without this
+def period_converter(value):
+    if isinstance(value, list):
+        if len(value) >= 3 and all(v is not None for v in value[:3]):
+            formatted_date = f"{value[0]:04d}-{value[1]:02d}-{value[2]:02d}"
+            return XmlPeriod(formatted_date)
+        else:
+            return XmlPeriod(str(value))
+    return XmlPeriod(str(value))
+
+converter.register_converter(XmlPeriod, period_converter)
 
 @dataclass
 class MetaData(DocumentType):

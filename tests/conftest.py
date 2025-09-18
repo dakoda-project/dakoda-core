@@ -3,16 +3,10 @@ from pathlib import Path
 import pytest
 
 from dakoda.corpus import DakodaCorpus
-from dakoda.uima import load_dakoda_typesystem, load_cas_from_file
 
 import polars as pl
 
 TESTFILES_DIR = Path(__file__).parent.parent / "data"
-
-
-@pytest.fixture
-def test_cas():
-    return load_cas_from_file(TESTFILES_DIR / "test.xmi", load_dakoda_typesystem())
 
 
 @pytest.fixture
@@ -27,14 +21,19 @@ def wtld():
 
 @pytest.fixture
 def test_corpus():
-    corpus = DakodaCorpus(TESTFILES_DIR / "WTLD")
+    corpus = DakodaCorpus(TESTFILES_DIR / "Merlin_test")
     corpus._document_paths = corpus._document_paths[:10]
     corpus._docs = corpus._docs[:10]
     return corpus
 
+@pytest.fixture
+def test_cas(test_corpus):
+    return test_corpus[0].cas
+
 
 @pytest.fixture
 def cas_index():
+    # todo: merlin
     return pl.read_csv(TESTFILES_DIR / "idx_cas.csv")
 
 
