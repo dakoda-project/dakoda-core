@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -7,23 +8,11 @@ from dakoda.corpus import DakodaCorpus
 import polars as pl
 
 TESTFILES_DIR = Path(__file__).parent.parent / "data"
-
-
-@pytest.fixture
-def comigs():
-    return DakodaCorpus(TESTFILES_DIR / "ComiGs")
-
-
-@pytest.fixture
-def wtld():
-    return DakodaCorpus(TESTFILES_DIR / "WTLD")
-
+TEST_CORPUS_DIR = TESTFILES_DIR / "Merlin_test"
 
 @pytest.fixture
 def test_corpus():
-    corpus = DakodaCorpus(TESTFILES_DIR / "Merlin_test")
-    corpus._document_paths = corpus._document_paths[:10]
-    corpus._docs = corpus._docs[:10]
+    corpus = DakodaCorpus(TEST_CORPUS_DIR)
     return corpus
 
 @pytest.fixture
@@ -33,8 +22,7 @@ def test_cas(test_corpus):
 
 @pytest.fixture
 def cas_index():
-    # todo: merlin
-    return pl.read_csv(TESTFILES_DIR / "idx_cas.csv")
+    return pl.read_csv(TEST_CORPUS_DIR / "cas_idx.csv")
 
 
 @pytest.fixture
@@ -72,3 +60,15 @@ def sample_index():
     return pl.DataFrame(
         data, schema=["idx", "view", "type", "field", "value"], orient="row"
     )
+
+def pytest_sessionfinish(session, exitstatus):
+    for meta_json in TEST_CORPUS_DIR.glob("*.json"):
+        meta_json.unlink()
+
+    index_dir = (TEST_CORPUS_DIR / '.index')
+    for index_file in index_dir.glob('*'):
+        index_file.unlink()
+
+    if index_dir.exists():
+        index_dir.rmdir()
+

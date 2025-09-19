@@ -6,76 +6,76 @@ import pytest
 from dakoda.corpus import DakodaDocument, CasIndexer, MetaDataIndexer
 
 
-def test_load_corpus(wtld):
-    assert wtld.name == "WTLD"
-    assert len(wtld) > 0
+def test_load_corpus(test_corpus):
+    assert test_corpus.name == "Merlin_test"
+    assert len(test_corpus) > 0
 
 
-def test_files(wtld):
-    docs = wtld.document_paths
-    assert len(docs) == len(wtld)
+def test_files(test_corpus):
+    docs = test_corpus.document_paths
+    assert len(docs) == len(test_corpus)
     assert all(doc.is_file() and doc.suffix == ".xmi" for doc in docs)
 
 
-def test_docs(comigs):
-    assert sum(1 for i in itertools.islice(comigs.docs, 5)) == 5
+def test_docs(test_corpus):
+    assert sum(1 for i in itertools.islice(test_corpus.docs, 5)) == 5
 
-    assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs, 5))
+    assert all(isinstance(doc, DakodaDocument) for doc in itertools.islice(test_corpus, 5))
     assert all(
-        isinstance(doc, DakodaDocument) for doc in itertools.islice(comigs.docs, 5)
+        isinstance(doc, DakodaDocument) for doc in itertools.islice(test_corpus.docs, 5)
     )
 
 
-def test_subscript_access(comigs):
+def test_subscript_access(test_corpus):
     # select by index
-    first_doc = comigs[0]
-    last_doc = comigs[-1]
+    first_doc = test_corpus[0]
+    last_doc = test_corpus[-1]
     assert isinstance(first_doc, DakodaDocument)
-    assert first_doc.id == "2mVs_1"
-    assert first_doc.corpus == comigs
+    assert first_doc.id == test_corpus.document_paths[0].stem
+    assert first_doc.corpus == test_corpus
     assert isinstance(last_doc, DakodaDocument)
 
     # select by slice
-    n_docs = len(comigs)
+    n_docs = len(test_corpus)
     i = n_docs // 2
-    multiple_docs = list(comigs[i : i + 2])
+    multiple_docs = list(test_corpus[i : i + 2])
     assert len(multiple_docs) == 2
 
     # select by path
-    path = random.choice(comigs.document_paths)
-    doc = comigs[path]
+    path = random.choice(test_corpus.document_paths)
+    doc = test_corpus[path]
     assert isinstance(doc, DakodaDocument)
 
     # select by id
-    doc = comigs["bThN_2"]
+    doc = test_corpus[first_doc.id]
     assert isinstance(doc, DakodaDocument)
 
-    doc = comigs["bThN_2.xmi"]
+    doc = test_corpus[first_doc.id + '.xmi']
     assert isinstance(doc, DakodaDocument)
 
     with pytest.raises(KeyError):
-        comigs["doesnotexist.xmi"]
+        test_corpus["doesnotexist.xmi"]
 
     # select by iterable
     idxs = [0, 3, 8]
-    docs = list(comigs[idxs])
+    docs = list(test_corpus[idxs])
     assert all(isinstance(doc, DakodaDocument) for doc in docs)
 
 
-def test_random_doc(wtld, empty_corpus):
-    doc = wtld.random_doc()
+def test_random_doc(test_corpus, empty_corpus):
+    doc = test_corpus.random_doc()
     assert len(doc.text) > 0
 
     with pytest.raises(ValueError):
         empty_corpus.random_doc()
 
 
-def test_document(test_cas, comigs):
+def test_document(test_cas, test_corpus):
     # create with external reference
     doc = DakodaDocument(
         cas=test_cas,
         id="TestDOC_27921",
-        corpus=comigs,
+        corpus=test_corpus,
     )
 
     # cas only
