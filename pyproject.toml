@@ -17,6 +17,7 @@ python = ">=3.11"
 polars = ">=1.30.0,<2.0.0"
 dkpro-cassis = ">=0.10.1,<1.0.0"
 xsdata = "22.12"
+requests = "^2.32.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

@@ -29,9 +29,13 @@ from dakoda.uima import (
 
 from dataclasses import dataclass
 
+from enum import Enum
+import requests
+import zipfile
+import tempfile
+
 DataSubset = Literal["cas", "meta"]
 DATA_SUBSETS = {"cas", "meta"}
-
 
 class DakodaDocument:
     """Represents a single document in a Dakoda corpus.
@@ -146,40 +150,139 @@ class DakodaDocument:
         tokens_2 = [token.text for token in self.view(view_2).tokens]
         return "".join(difflib.context_diff(tokens_1, tokens_2))
 
+class DakodaCorpusName(Enum):
+    ASKO_L2 = "ASKO-L2"
+    AUGS_L2 = "AUGS-L2"
+    BELD_L2 = "BELD-L2"
+    BMAT_L2 = "BMAT-L2"
+    CDGE_L2 = "CDGE-L2"
+    CDPL_L2 = "CDPL-L2"
+    COGS_L2 = "COGS-L2"
+    DIGS_L2 = "DIGS-L2"
+    DISH_L2 = "DISH-L2"
+    DISK_L2 = "DISK-L2"
+    DIWT_L2 = "DIWT-L2"
+    DLKE_L2 = "DLKE-L2"
+    DLKÜ_L2 = "DLKÜ-L2"
+    DUO_L2 = "DUO-L2"
+    FA_ESSA_L2 = "FA-ESSA-L2"
+    FA_GBWT_L2 = "FA-GBWT-L2"
+    FA_GPPT_L2 = "FA-GPPT-L2"
+    FA_KAND_L2 = "FA-KAND-L2"
+    FA_KOEX_L2 = "FA-KOEX-L2"
+    FA_SUMM_L2 = "FA-SUMM-L2"
+    FA_WHIG_L2 = "FA-WHIG-L2"
+    KLP1_L2 = "KLP1-L2"
+    KLP1_LX = "KLP1-Lx"
+    KOKO_L1 = "KOKO-L1"
+    KOKO_LX = "KOKO-Lx"
+    LEON_L1 = "LEON-L1"
+    LEON_L2 = "LEON-L2"
+    MERL_L2 = "MERL-L2"
+    MULT_L1 = "MULT-L1"
+    MULT_L2 = "MULT-L2"
+    OSNA_L1 = "OSNA-L1"
+    OSNA_L2 = "OSNA-L2"
+    OSNA_LX = "OSNA-Lx"
+    PETE_L1 = "PETE-L1"
+    PETE_L2 = "PETE-L2"
+    RUEG_HL = "RUEG-HL"
+    RUEG_L1 = "RUEG-L1"
+    RUEG_LX = "RUEG-Lx"
+    SWIK_L1 = "SWIK-L1"
+    SWIK_L2 = "SWIK-L2"
+    SWIK_LX = "SWIK-Lx"
 
 class DakodaCorpus:
-    """A collection of Dakoda documents.
+    """A collection of Dakoda documents."""
 
-    Manages a corpus of documents stored as XMI files. Provides search functionality, and lazy loading. Supports various
-    indexing strategies for different data subsets.
-
-
-    Args:
-        path: Path to the directory containing corpus files.
-
-    See Also:
-        dakoda.query for options to filter the corpus.
-    """
     ts = load_dakoda_typesystem()
 
-    def __init__(self, path):
-        self.path = Path(path)
-        self.name = self.path.stem
-        self._document_paths = list(self.path.glob("*.xmi"))
-        self._document_paths.sort()
+    def __init__(self, path, remote: bool = False):
 
-        self._docs = []
-        self._id_to_doc = {}
-        for p in self.document_paths:
-            doc = DakodaDocument(cas=None, id=p.stem, corpus=self)
-            self._docs.append(doc)
-            self._id_to_doc[doc.id] = doc
+        self.remote = remote
+        self._temp_dir = None
 
+        # =========================
+        # Lokaler Modus
+        # =========================
+        if not remote:
+            self.path = Path(path)
+            self.name = self.path.stem
+            self._init_from_filesystem(self.path)
+
+        # =========================
+        # Remote Modus
+        # =========================
+        else:
+            if not isinstance(path, DakodaCorpusName):
+                raise ValueError("Remote mode requires DakodaCorpusName enum.")
+
+            self.corpus_name = path.value
+            self.name = self.corpus_name
+            self._init_from_remote(self.corpus_name)
+
+        # =========================
+        # Index-Struktur
+        # =========================
         self._search_index: dict[DataSubset, pl.DataFrame | None] = {
             "cas": None,
             "meta": None,
         }
 
+    # =========================================================
+    # Initialisierung: lokal
+    # =========================================================
+    def _init_from_filesystem(self, path: Path):
+        self._document_paths = list(path.glob("*.xmi"))
+        self._document_paths.sort()
+
+        self._docs = []
+        self._id_to_doc = {}
+
+        for p in self._document_paths:
+            doc = DakodaDocument(cas=None, id=p.stem, corpus=self)
+            self._docs.append(doc)
+            self._id_to_doc[doc.id] = doc
+
+    # =========================================================
+    # Initialisierung: remote (ZIP)
+    # =========================================================
+    @staticmethod
+    def _build_remote_url(name: str) -> str:
+        return f"https://dakoda.org/data/repo/open/{name}/{name}_xmi.zip"
+
+    def _init_from_remote(self, corpus_name: str):
+        url = self._build_remote_url(corpus_name)
+
+        r = requests.get(url)
+        r.raise_for_status()
+
+        self._temp_dir = tempfile.TemporaryDirectory()
+        zip_path = Path(self._temp_dir.name) / "corpus.zip"
+        zip_path.write_bytes(r.content)
+
+        with zipfile.ZipFile(zip_path, "r") as z:
+            z.extractall(self._temp_dir.name)
+
+        base = Path(self._temp_dir.name)
+
+        self.path = base
+
+        self._document_paths = list(base.glob("*.xmi"))
+        self._document_paths.sort()
+
+        self._docs = []
+        self._id_to_doc = {}
+
+        for p in self._document_paths:
+            doc = DakodaDocument(cas=None, id=p.stem, corpus=self)
+            self._docs.append(doc)
+            self._id_to_doc[doc.id] = doc
+
+    # =========================================================
+    # Standard API
+    # =========================================================
     def __repr__(self):
         return f"DakodaCorpus(name={self.name}, path={self.path})"
 
@@ -211,6 +314,9 @@ class DakodaCorpus:
         else:
             raise KeyError(f"Invalid key type: {type(key)}")
 
+    # =========================================================
+    # Zugriff
+    # =========================================================
     def _get_by_path(self, path: str | Path) -> DakodaDocument:
         return self._id_to_doc[Path(path).stem]
 
@@ -221,9 +327,11 @@ class DakodaCorpus:
         start, stop, step = indices_slice.indices(len(self))
         return (self._get_by_index(i) for i in range(start, stop, step))
 
-    def _build_index(
-        self, source_type: DataSubset | None = None, force_rebuild: bool = False
-    ):
+    # =========================================================
+    # Indexing
+    # =========================================================
+    def _build_index(self, source_type: DataSubset | None = None, force_rebuild: bool = False):
+
         if source_type is None:
             self._build_index("cas")
             self._build_index("meta")
@@ -234,18 +342,21 @@ class DakodaCorpus:
 
         if source_type == "cas":
             indexer = CasIndexer()
-
             cache = IndexCache(self, source_type)
+
             if cache.is_cached and not force_rebuild:
                 self._search_index[source_type] = cache.read()
                 return
+
         elif source_type == "meta":
             indexer = MetaDataIndexer()
             cache = None
+
         else:
             raise ValueError('Source Type must be either "cas", "meta" or None.')
 
         self._search_index[source_type] = indexer.index_corpus(self)
+
         if cache is not None:
             cache.write(self._search_index[source_type])
 
@@ -261,50 +372,35 @@ class DakodaCorpus:
         if subset in DATA_SUBSETS:
             idx = self._get_search_index(subset)
             return q.documents(idx).to_list()
+
         elif subset is None:
             result: set[int] = set()
-            for subset in DATA_SUBSETS:
-                result.update(self._query(q, subset))
+            for s in DATA_SUBSETS:
+                result.update(self._query(q, s))
             return list(result)
+
         else:
             raise ValueError('Subset must be either "cas", "meta" or None.')
 
+    # =========================================================
+    # Properties
+    # =========================================================
     @property
     def size(self) -> int:
-        """Get the number of documents in the corpus.
-
-        Returns:
-            Integer count of documents in the corpus.
-        """
         return len(self)
 
     @property
     def docs(self):
-        """Get a copy of all documents in the corpus.
-
-        Returns:
-            List copy of all DakodaDocument objects in the corpus.
-        """
         return self._docs.copy()
 
     @property
     def document_paths(self):
-        """Get a copy of all document file paths in the corpus.
-
-        Returns:
-            List copy of Path objects for all XMI files in the corpus.
-        """
         return self._document_paths.copy()
 
+    # =========================================================
+    # Utility
+    # =========================================================
     def random_doc(self) -> DakodaDocument:
-        """Return a random document from the corpus.
-
-        Returns:
-            A randomly selected DakodaDocument from the corpus.
-
-        Raises:
-            ValueError: If the corpus contains no documents.
-        """
         if not self._docs:
             raise ValueError("No documents in the corpus.")
         return random.choice(self._docs)
