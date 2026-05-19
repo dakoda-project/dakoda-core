@@ -198,79 +198,153 @@ class DakodaCorpus:
 
     ts = load_dakoda_typesystem()
 
-    def __init__(self, path, remote: bool = False):
+    CACHE_DIR = Path.cwd() / ".dakoda" / "corpora"
 
-        self.remote = remote
+    def __init__(self, source: DakodaCorpusName | str | Path):
+
+        self.remote = False
         self._temp_dir = None
 
-        # =========================
-        # Lokaler Modus
-        # =========================
-        if not remote:
-            self.path = Path(path)
-            self.name = self.path.stem
-            self._init_from_filesystem(self.path)
+        # =====================================================
+        # Remote über Enum
+        # =====================================================
+        if isinstance(source, DakodaCorpusName):
+            corpus_name = source.value
+            self.remote = True
+            self._init_from_remote(corpus_name)
 
-        # =========================
-        # Remote Modus
-        # =========================
+        # =====================================================
+        # Remote über String
+        # =====================================================
+        elif isinstance(source, str):
+            corpus_name = source.replace("_", "-")
+            self.remote = True
+            self._init_from_remote(corpus_name)
+
+        # =====================================================
+        # Lokal über Path
+        # =====================================================
+        elif isinstance(source, Path):
+            self.path = source
+            self.name = source.stem
+            self._init_from_filesystem(source)
+
         else:
-            if not isinstance(path, DakodaCorpusName):
-                raise ValueError("Remote mode requires DakodaCorpusName enum.")
+            raise TypeError(
+                "DakodaCorpus requires DakodaCorpusName, str or Path."
+            )
 
-            self.corpus_name = path.value
-            self.name = self.corpus_name
-            self._init_from_remote(self.corpus_name)
-
-        # =========================
+        # =====================================================
         # Index-Struktur
-        # =========================
+        # =====================================================
         self._search_index: dict[DataSubset, pl.DataFrame | None] = {
             "cas": None,
             "meta": None,
         }
 
     # =========================================================
-    # Initialisierung: lokal
+    # Lokale Initialisierung
     # =========================================================
     def _init_from_filesystem(self, path: Path):
-        self._document_paths = list(path.glob("*.xmi"))
-        self._document_paths.sort()
 
-        self._docs = []
-        self._id_to_doc = {}
+        if not path.exists():
+            raise FileNotFoundError(f"Corpus path does not exist: {path}")
 
-        for p in self._document_paths:
-            doc = DakodaDocument(cas=None, id=p.stem, corpus=self)
-            self._docs.append(doc)
-            self._id_to_doc[doc.id] = doc
+        resolved_path = path.resolve()
+
+        print(f"[LOCAL LOAD] Loading corpus from: {resolved_path}")
+
+        self.path = resolved_path
+        self.name = resolved_path.stem
+
+        self._document_paths = sorted(resolved_path.glob("*.xmi"))
+
+        self._load_documents()
 
     # =========================================================
-    # Initialisierung: remote (ZIP)
+    # Remote Initialisierung
     # =========================================================
-    @staticmethod
-    def _build_remote_url(name: str) -> str:
-        return f"https://dakoda.org/data/repo/open/{name}/{name}_xmi.zip"
-
     def _init_from_remote(self, corpus_name: str):
-        url = self._build_remote_url(corpus_name)
 
-        r = requests.get(url)
-        r.raise_for_status()
+        self.name = corpus_name
 
-        self._temp_dir = tempfile.TemporaryDirectory()
-        zip_path = Path(self._temp_dir.name) / "corpus.zip"
-        zip_path.write_bytes(r.content)
+        cache_path = self._get_cache_path(corpus_name)
 
-        with zipfile.ZipFile(zip_path, "r") as z:
-            z.extractall(self._temp_dir.name)
+        # -----------------------------------------------------
+        # Bereits lokal vorhanden
+        # -----------------------------------------------------
+        if cache_path.exists():
+            print(f"[CACHE LOAD] Using cached corpus: {corpus_name}")
+            self._init_from_filesystem(cache_path)
+            return
 
-        base = Path(self._temp_dir.name)
+        # -----------------------------------------------------
+        # Download notwendig
+        # -----------------------------------------------------
+        print(f"[REMOTE LOAD] Downloading corpus: {corpus_name}")
 
-        self.path = base
+        self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-        self._document_paths = list(base.glob("*.xmi"))
-        self._document_paths.sort()
+        modes = ["open", "closed"]
+
+        response = None
+        last_error = None
+
+        for mode in modes:
+            url = self._build_remote_url(corpus_name, mode)
+
+            try:
+                print(f"Trying {mode.upper()} URL: {url}")
+
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+
+                print(f"Success with {mode.upper()} repository")
+                break
+
+            except Exception as e:
+                print(f"[{mode.upper()} FAILED] {e}")
+                last_error = e
+                response = None
+
+        if response is None:
+            raise RuntimeError(
+                f"Corpus '{corpus_name}' could not be downloaded from open or closed repository"
+            ) from last_error
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            zip_path = Path(tmp_dir) / "corpus.zip"
+            zip_path.write_bytes(response.content)
+
+            extract_path = Path(tmp_dir) / corpus_name
+
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extractall(extract_path)
+
+            cache_path.mkdir(parents=True, exist_ok=True)
+
+            for xmi_file in extract_path.glob("*.xmi"):
+                target = cache_path / xmi_file.name
+                target.write_bytes(xmi_file.read_bytes())
+
+        self._init_from_filesystem(cache_path)
+
+    # =========================================================
+    # Cache Utilities
+    # =========================================================
+    @classmethod
+    def _get_cache_path(cls, corpus_name: str) -> Path:
+        return cls.CACHE_DIR / corpus_name
+
+    @staticmethod
+    def _build_remote_url(name: str, mode: str) -> str:
+        return f"https://dakoda.org/data/repo/{mode}/{name}/{name}_xmi.zip"
+
+    # =========================================================
+    # Dokumente laden
+    # =========================================================
+    def _load_documents(self):
 
         self._docs = []
         self._id_to_doc = {}
@@ -292,7 +366,8 @@ class DakodaCorpus:
     def __eq__(self, other):
         if not isinstance(other, DakodaCorpus):
             return False
-        return self.name == other.name and self.path == other.path
+
+        return self.path.resolve() == other.path.resolve()
 
     def __len__(self):
         return len(self._docs)
@@ -301,16 +376,22 @@ class DakodaCorpus:
         return iter(self._docs)
 
     def __getitem__(self, key):
+
         if isinstance(key, Predicate):
             return self.__getitem__(self._query(key))
-        elif isinstance(key, str) or isinstance(key, Path):
+
+        elif isinstance(key, (str, Path)):
             return self._get_by_path(key)
+
         elif isinstance(key, int):
             return self._get_by_index(key)
+
         elif isinstance(key, slice):
             return self._get_by_slice(key)
+
         elif isinstance(key, Iterable):
-            return (self.__getitem__(k) for k in key)
+            return [self.__getitem__(k) for k in key]
+
         else:
             raise KeyError(f"Invalid key type: {type(key)}")
 
@@ -323,21 +404,31 @@ class DakodaCorpus:
     def _get_by_index(self, index: int) -> DakodaDocument:
         return self._docs[index]
 
-    def _get_by_slice(self, indices_slice: slice) -> Iterator[DakodaDocument]:
+    def _get_by_slice(self, indices_slice: slice):
         start, stop, step = indices_slice.indices(len(self))
-        return (self._get_by_index(i) for i in range(start, stop, step))
+        return [
+            self._get_by_index(i)
+            for i in range(start, stop, step)
+        ]
 
     # =========================================================
     # Indexing
     # =========================================================
-    def _build_index(self, source_type: DataSubset | None = None, force_rebuild: bool = False):
+    def _build_index(
+        self,
+        source_type: DataSubset | None = None,
+        force_rebuild: bool = False,
+    ):
 
         if source_type is None:
             self._build_index("cas")
             self._build_index("meta")
             return
 
-        if self._search_index.get(source_type) is not None and not force_rebuild:
+        if (
+            self._search_index.get(source_type) is not None
+            and not force_rebuild
+        ):
             return
 
         if source_type == "cas":
@@ -353,7 +444,9 @@ class DakodaCorpus:
             cache = None
 
         else:
-            raise ValueError('Source Type must be either "cas", "meta" or None.')
+            raise ValueError(
+                'Source Type must be either "cas", "meta" or None.'
+            )
 
         self._search_index[source_type] = indexer.index_corpus(self)
 
@@ -361,26 +454,41 @@ class DakodaCorpus:
             cache.write(self._search_index[source_type])
 
     def _get_search_index(self, source_type: DataSubset):
+
         if source_type in DATA_SUBSETS:
+
             if self._search_index.get(source_type) is None:
                 self._build_index(source_type)
-            return self._search_index[source_type]
-        else:
-            raise ValueError('Source Type must be either "cas", "meta" or None.')
 
-    def _query(self, q: Predicate, subset: DataSubset | None = None) -> List[int]:
+            return self._search_index[source_type]
+
+        else:
+            raise ValueError(
+                'Source Type must be either "cas", "meta" or None.'
+            )
+
+    def _query(
+        self,
+        q: Predicate,
+        subset: DataSubset | None = None,
+    ) -> List[int]:
+
         if subset in DATA_SUBSETS:
             idx = self._get_search_index(subset)
             return q.documents(idx).to_list()
 
         elif subset is None:
             result: set[int] = set()
+
             for s in DATA_SUBSETS:
                 result.update(self._query(q, s))
+
             return list(result)
 
         else:
-            raise ValueError('Subset must be either "cas", "meta" or None.')
+            raise ValueError(
+                'Subset must be either "cas", "meta" or None.'
+            )
 
     # =========================================================
     # Properties
@@ -401,10 +509,11 @@ class DakodaCorpus:
     # Utility
     # =========================================================
     def random_doc(self) -> DakodaDocument:
+
         if not self._docs:
             raise ValueError("No documents in the corpus.")
-        return random.choice(self._docs)
 
+        return random.choice(self._docs)
 
 @dataclass
 class FieldMapping:
