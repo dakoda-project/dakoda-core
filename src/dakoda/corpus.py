@@ -285,32 +285,21 @@ class DakodaCorpus:
 
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-        modes = ["open", "closed"]
+        url = self._build_remote_url(corpus_name)
 
-        response = None
-        last_error = None
+        try:
+            print(f"Trying URL: {url}")
 
-        for mode in modes:
-            url = self._build_remote_url(corpus_name, mode)
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
 
-            try:
-                print(f"Trying {mode.upper()} URL: {url}")
+            print("Success with repository")
 
-                response = requests.get(url, timeout=30)
-                response.raise_for_status()
-
-                print(f"Success with {mode.upper()} repository")
-                break
-
-            except Exception as e:
-                print(f"[{mode.upper()} FAILED] {e}")
-                last_error = e
-                response = None
-
-        if response is None:
+        except Exception as e:
+            print(f"[URL FAILED] {e}")
             raise RuntimeError(
-                f"Corpus '{corpus_name}' could not be downloaded from open or closed repository"
-            ) from last_error
+                f"Corpus '{corpus_name}' could not be downloaded from remote repository"
+            ) from e
 
         with tempfile.TemporaryDirectory() as tmp_dir:
 
@@ -338,8 +327,8 @@ class DakodaCorpus:
         return cls.CACHE_DIR / corpus_name
 
     @staticmethod
-    def _build_remote_url(name: str, mode: str) -> str:
-        return f"https://dakoda.org/data/repo/{mode}/{name}/{name}_xmi.zip"
+    def _build_remote_url(name: str) -> str:
+        return f"https://dakoda.org/data/repo/open/{name}/{name}_xmi.zip"
 
     # =========================================================
     # Dokumente laden

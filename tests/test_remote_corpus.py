@@ -164,13 +164,10 @@ def test_remote_uses_cache(monkeypatch, tmp_path):
 
 def test_build_remote_url():
 
-    url_open = DakodaCorpus._build_remote_url("DLKE-L2", "open")
-    url_closed = DakodaCorpus._build_remote_url("DLKE-L2", "closed")
+    url = DakodaCorpus._build_remote_url("DLKE-L2")
 
-    assert "DLKE-L2_xmi.zip" in url_open
-    assert "DLKE-L2_xmi.zip" in url_closed
-    assert "dakoda.org" in url_open
-    assert "dakoda.org" in url_closed
+    assert "DLKE-L2_xmi.zip" in url
+    assert "dakoda.org" in url
 
 
 # =========================================================
