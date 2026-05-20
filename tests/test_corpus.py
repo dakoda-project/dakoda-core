@@ -1,3 +1,4 @@
+from curses import meta
 import itertools
 import random
 
@@ -133,3 +134,8 @@ def test_meta_indexer(test_corpus):
     df = indexer.index_corpus(test_corpus)
     assert df.columns == doc_df.columns
     assert all(col in indexer.field_mappings.keys() for col in df.columns)
+
+def test_print_tree(test_corpus):
+    doc = test_corpus[0]
+    meta = doc.meta
+    meta.print_schema_tree()

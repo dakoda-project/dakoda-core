@@ -19,11 +19,9 @@ def test_corpus():
 def test_cas(test_corpus):
     return test_corpus[0].cas
 
-
 @pytest.fixture
 def cas_index():
     return pl.read_csv(TEST_CORPUS_DIR / "cas_idx.csv")
-
 
 @pytest.fixture
 def empty_corpus():

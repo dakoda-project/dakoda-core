@@ -4,7 +4,7 @@ import io
 
 import pytest
 
-from dakoda.corpus import DakodaCorpus, DakodaCorpusName
+from dakoda.corpus import DakodaCorpus, DakodaPublicCorpusName
 
 
 # =========================================================
@@ -82,13 +82,13 @@ def test_remote_corpus_loading_enum(monkeypatch, tmp_path, fake_remote_zip):
         tmp_path / ".dakoda" / "corpora",
     )
 
-    corpus = DakodaCorpus(DakodaCorpusName.DLKE_L2)
+    corpus = DakodaCorpus(DakodaPublicCorpusName.BMAT_L2)
 
     assert corpus.remote is True
-    assert corpus.name == "DLKE-L2"
+    assert corpus.name == "BMAT-L2"
     assert len(corpus) == 2
 
-    cache_path = tmp_path / ".dakoda" / "corpora" / "DLKE-L2"
+    cache_path = tmp_path / ".dakoda" / "corpora" / "BMAT-L2"
 
     assert cache_path.exists()
     assert (cache_path / "doc1.xmi").exists()
@@ -118,10 +118,10 @@ def test_remote_corpus_loading_string(monkeypatch, tmp_path, fake_remote_zip):
         tmp_path / ".dakoda" / "corpora",
     )
 
-    corpus = DakodaCorpus("DLKE_L2")
+    corpus = DakodaCorpus("BMAT_L2")
 
     assert corpus.remote is True
-    assert corpus.name == "DLKE-L2"
+    assert corpus.name == "BMAT-L2"
     assert len(corpus) == 2
 
 
@@ -131,7 +131,7 @@ def test_remote_corpus_loading_string(monkeypatch, tmp_path, fake_remote_zip):
 
 def test_remote_uses_cache(monkeypatch, tmp_path):
 
-    cache_dir = tmp_path / ".dakoda" / "corpora" / "DLKE-L2"
+    cache_dir = tmp_path / ".dakoda" / "corpora" / "BMAT-L2"
     cache_dir.mkdir(parents=True)
 
     (cache_dir / "doc1.xmi").write_text("<xmi></xmi>")
@@ -152,7 +152,7 @@ def test_remote_uses_cache(monkeypatch, tmp_path):
         tmp_path / ".dakoda" / "corpora",
     )
 
-    corpus = DakodaCorpus("DLKE_L2")
+    corpus = DakodaCorpus("BMAT_L2")
 
     assert len(corpus) == 2
     assert called is False
@@ -164,9 +164,9 @@ def test_remote_uses_cache(monkeypatch, tmp_path):
 
 def test_build_remote_url():
 
-    url = DakodaCorpus._build_remote_url("DLKE-L2")
+    url = DakodaCorpus._build_remote_url("BMAT-L2")
 
-    assert "DLKE-L2_xmi.zip" in url
+    assert "BMAT-L2_xmi.zip" in url
     assert "dakoda.org" in url
 
 

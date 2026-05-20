@@ -6,6 +6,7 @@ in the Dakoda format.
 
 from __future__ import annotations
 
+import io
 import random
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Callable
@@ -32,7 +33,6 @@ from dataclasses import dataclass
 from enum import Enum
 import requests
 import zipfile
-import tempfile
 
 DataSubset = Literal["cas", "meta"]
 DATA_SUBSETS = {"cas", "meta"}
@@ -150,21 +150,36 @@ class DakodaDocument:
         tokens_2 = [token.text for token in self.view(view_2).tokens]
         return "".join(difflib.context_diff(tokens_1, tokens_2))
 
-class DakodaCorpusName(Enum):
+class DakodaClosedCorpusName(Enum):
     ASKO_L2 = "ASKO-L2"
+    DLKE_L2 = "DLKE-L2"
+    DLKÜ_L2 = "DLKÜ-L2"
+
+class DakodaRestrictedCorpusName(Enum):
     AUGS_L2 = "AUGS-L2"
     BELD_L2 = "BELD-L2"
-    BMAT_L2 = "BMAT-L2"
     CDGE_L2 = "CDGE-L2"
     CDPL_L2 = "CDPL-L2"
-    COGS_L2 = "COGS-L2"
-    DIGS_L2 = "DIGS-L2"
     DISH_L2 = "DISH-L2"
     DISK_L2 = "DISK-L2"
     DIWT_L2 = "DIWT-L2"
-    DLKE_L2 = "DLKE-L2"
-    DLKÜ_L2 = "DLKÜ-L2"
     DUO_L2 = "DUO-L2"
+    KLP1_L2 = "KLP1-L2"
+    KLP1_LX = "KLP1-Lx"
+    KOKO_L1 = "KOKO-L1"
+    KOKO_LX = "KOKO-Lx"
+    LEON_L1 = "LEON-L1"
+    LEON_L2 = "LEON-L2"
+    MULT_L1 = "MULT-L1"
+    MULT_L2 = "MULT-L2"
+    SWIK_L1 = "SWIK-L1"
+    SWIK_L2 = "SWIK-L2"
+    SWIK_LX = "SWIK-Lx"
+
+class DakodaPublicCorpusName(Enum):
+    BMAT_L2 = "BMAT-L2"
+    COGS_L2 = "COGS-L2"
+    DIGS_L2 = "DIGS-L2"
     FA_ESSA_L2 = "FA-ESSA-L2"
     FA_GBWT_L2 = "FA-GBWT-L2"
     FA_GPPT_L2 = "FA-GPPT-L2"
@@ -172,15 +187,7 @@ class DakodaCorpusName(Enum):
     FA_KOEX_L2 = "FA-KOEX-L2"
     FA_SUMM_L2 = "FA-SUMM-L2"
     FA_WHIG_L2 = "FA-WHIG-L2"
-    KLP1_L2 = "KLP1-L2"
-    KLP1_LX = "KLP1-Lx"
-    KOKO_L1 = "KOKO-L1"
-    KOKO_LX = "KOKO-Lx"
-    LEON_L1 = "LEON-L1"
-    LEON_L2 = "LEON-L2"
     MERL_L2 = "MERL-L2"
-    MULT_L1 = "MULT-L1"
-    MULT_L2 = "MULT-L2"
     OSNA_L1 = "OSNA-L1"
     OSNA_L2 = "OSNA-L2"
     OSNA_LX = "OSNA-Lx"
@@ -189,9 +196,19 @@ class DakodaCorpusName(Enum):
     RUEG_HL = "RUEG-HL"
     RUEG_L1 = "RUEG-L1"
     RUEG_LX = "RUEG-Lx"
-    SWIK_L1 = "SWIK-L1"
-    SWIK_L2 = "SWIK-L2"
-    SWIK_LX = "SWIK-Lx"
+
+def _merge_enum_values(*enum_classes):
+    values = {}
+    for enum_class in enum_classes:
+        for member in enum_class:
+            values[member.name] = member.value
+    return Enum("DakodaCorpusName", values)
+
+DakodaCorpusName = _merge_enum_values(
+    DakodaPublicCorpusName,
+    DakodaRestrictedCorpusName,
+    DakodaClosedCorpusName
+)
 
 class DakodaCorpus:
     """A collection of Dakoda documents."""
@@ -200,39 +217,12 @@ class DakodaCorpus:
 
     CACHE_DIR = Path.cwd() / ".dakoda" / "corpora"
 
-    def __init__(self, source: DakodaCorpusName | str | Path):
+    def __init__(
+        self,
+        source: DakodaPublicCorpusName | DakodaCorpusName | str | Path,
+    ):
 
         self.remote = False
-        self._temp_dir = None
-
-        # =====================================================
-        # Remote über Enum
-        # =====================================================
-        if isinstance(source, DakodaCorpusName):
-            corpus_name = source.value
-            self.remote = True
-            self._init_from_remote(corpus_name)
-
-        # =====================================================
-        # Remote über String
-        # =====================================================
-        elif isinstance(source, str):
-            corpus_name = source.replace("_", "-")
-            self.remote = True
-            self._init_from_remote(corpus_name)
-
-        # =====================================================
-        # Lokal über Path
-        # =====================================================
-        elif isinstance(source, Path):
-            self.path = source
-            self.name = source.stem
-            self._init_from_filesystem(source)
-
-        else:
-            raise TypeError(
-                "DakodaCorpus requires DakodaCorpusName, str or Path."
-            )
 
         # =====================================================
         # Index-Struktur
@@ -241,6 +231,26 @@ class DakodaCorpus:
             "cas": None,
             "meta": None,
         }
+
+        # =====================================================
+        # Lokal über Path
+        # =====================================================
+        if isinstance(source, Path):
+            self.path = source
+            self.name = source.stem
+            self._init_from_filesystem(source)
+        elif isinstance(source, (DakodaPublicCorpusName, DakodaCorpusName)):
+            corpus_name = source.value
+            self.remote = True
+            self._init_from_remote(corpus_name)
+        elif isinstance(source, str):
+            corpus_name = source.replace("_", "-")
+            self.remote = True
+            self._init_from_remote(corpus_name)
+        else:
+            raise TypeError(
+                "DakodaCorpus requires DakodaCorpusName, str or Path."
+            )
 
     # =========================================================
     # Lokale Initialisierung
@@ -265,6 +275,13 @@ class DakodaCorpus:
     # Remote Initialisierung
     # =========================================================
     def _init_from_remote(self, corpus_name: str):
+
+        try:
+            DakodaPublicCorpusName(corpus_name)
+        except ValueError as exc:
+            raise ValueError(
+                f"Corpus '{corpus_name}' is not available for public download."
+            ) from exc
 
         self.name = corpus_name
 
@@ -301,21 +318,10 @@ class DakodaCorpus:
                 f"Corpus '{corpus_name}' could not be downloaded from remote repository"
             ) from e
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        cache_path.mkdir(parents=True, exist_ok=True)
 
-            zip_path = Path(tmp_dir) / "corpus.zip"
-            zip_path.write_bytes(response.content)
-
-            extract_path = Path(tmp_dir) / corpus_name
-
-            with zipfile.ZipFile(zip_path, "r") as zf:
-                zf.extractall(extract_path)
-
-            cache_path.mkdir(parents=True, exist_ok=True)
-
-            for xmi_file in extract_path.glob("*.xmi"):
-                target = cache_path / xmi_file.name
-                target.write_bytes(xmi_file.read_bytes())
+        with zipfile.ZipFile(io.BytesIO(response.content), "r") as zf:
+            zf.extractall(cache_path)
 
         self._init_from_filesystem(cache_path)
 

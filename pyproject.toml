@@ -13,7 +13,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.11"
+python = ">=3.9,<3.14"
 polars = ">=1.30.0,<2.0.0"
 dkpro-cassis = ">=0.10.1,<1.0.0"
 xsdata = "22.12"

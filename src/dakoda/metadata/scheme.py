@@ -6,8 +6,9 @@ import json
 from dataclasses import dataclass, field, fields, is_dataclass, asdict
 from decimal import Decimal
 from enum import Enum
-from typing import List, Optional, Union, Any, Tuple, Iterator
-
+from typing import List, Optional, Union, Any, Tuple, Iterator, get_origin, get_args, get_type_hints
+from dataclasses import is_dataclass, fields
+import sys
 import polars as pl
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.parsers import JsonParser
@@ -2471,6 +2472,110 @@ class MetaData(DocumentType):
             Iterator of (field_name, value) tuples for all metadata fields.
         """
         return _traverse_dataclass_fields(self)
+
+    def print_schema_tree(self, max_depth: int | None = None) -> None:
+        """Print metadata schema structure to console.
+
+        Traverses the dataclass schema by type hints (not instance values) and prints
+        a tree of field names. Handles Optional/Union, containers, and ForwardRefs.
+        """
+
+        def _unwrap_type(t):
+            """Unwrap Optional[T] (Union[T, None]) if there is exactly one non-None type."""
+            origin = get_origin(t)
+            if origin is Union:
+                args = [a for a in get_args(t) if a is not type(None)]
+                if len(args) == 1:
+                    return args[0]
+            return t
+
+        def _child_dataclasses(t):
+            """Yield dataclass types nested inside t (container, union, etc.)."""
+            t = _unwrap_type(t)
+
+            if is_dataclass(t):
+                yield t
+                return
+
+            origin = get_origin(t)
+            if origin is None:
+                return
+
+            # list/set/frozenset[T]
+            if origin in (list, set, frozenset):
+                args = get_args(t)
+                if args:
+                    elem = _unwrap_type(args[0])
+                    if is_dataclass(elem):
+                        yield elem
+                return
+
+            # tuple[T1, T2, ...]
+            if origin is tuple:
+                for a in get_args(t):
+                    a = _unwrap_type(a)
+                    if is_dataclass(a):
+                        yield a
+                return
+
+            # dict[K, V] -> recurse into value type
+            if origin is dict:
+                args = get_args(t)
+                if len(args) == 2:
+                    val = _unwrap_type(args[1])
+                    if is_dataclass(val):
+                        yield val
+                return
+
+            # Union[T1, T2, ...] -> recurse into all dataclass members
+            if origin is Union:
+                for a in get_args(t):
+                    a = _unwrap_type(a)
+                    if is_dataclass(a):
+                        yield a
+                return
+
+        def _print_schema_recursive(cls: type, depth: int = 0, visited: set[type] | None = None) -> None:
+            if visited is None:
+                visited = set()
+
+            # Begrenzung der Tiefe (Nodes auf max_depth noch ausgeben, aber nicht tiefer gehen)
+            if max_depth is not None and depth >= max_depth:
+                return
+
+            if not is_dataclass(cls):
+                return
+
+            # ForwardRefs/Strings in echte Typen auflösen
+            try:
+                type_hints = get_type_hints(
+                    cls,
+                    globalns=sys.modules[cls.__module__].__dict__,
+                    localns=None,
+                    include_extras=False,
+                )
+            except Exception:
+                # Fallback: notfalls die rohen Annotationen verwenden
+                type_hints = {f.name: f.type for f in fields(cls)}
+
+            indent = "  " * depth
+            # indent = "#" * (depth + 2) + " "
+
+            for f in fields(cls):
+                t = type_hints.get(f.name, f.type)
+                t = _unwrap_type(t)
+
+                # Feldname immer ausgeben
+                print(f"{indent}{f.name}")
+
+                # Danach in Kinder-Dataclasses absteigen
+                for child in _child_dataclasses(t):
+                    # Zyklen vermeiden (global, damit gleiche Typen nicht endlos wiederholt werden)
+                    if child not in visited:
+                        visited.add(child)
+                        _print_schema_recursive(child, depth + 1, visited)
+
+        _print_schema_recursive(self.__class__)
 
     def to_records(self, idx: int | None = None):
         """Convert metadata to list of record dictionaries.
