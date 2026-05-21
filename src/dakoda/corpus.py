@@ -244,9 +244,15 @@ class DakodaCorpus:
             self.remote = True
             self._init_from_remote(corpus_name)
         elif isinstance(source, str):
-            corpus_name = source.replace("_", "-")
-            self.remote = True
-            self._init_from_remote(corpus_name)
+            candidate_path = Path(source).expanduser()
+            if candidate_path.exists():
+                self.path = candidate_path
+                self.name = candidate_path.stem
+                self._init_from_filesystem(candidate_path)
+            else:
+                corpus_name = source.replace("_", "-") # allows users to pass corpus names with underscores instead of dashes
+                self.remote = True
+                self._init_from_remote(corpus_name, source)
         else:
             raise TypeError(
                 "DakodaCorpus requires DakodaCorpusName, str or Path."
@@ -274,13 +280,16 @@ class DakodaCorpus:
     # =========================================================
     # Remote Initialisierung
     # =========================================================
-    def _init_from_remote(self, corpus_name: str):
+    def _init_from_remote(self, corpus_name: str, source_text: str | None = None):
 
         try:
             DakodaPublicCorpusName(corpus_name)
         except ValueError as exc:
+            hint = ""
+            if source_text is not None and self._looks_like_path_string(source_text):
+                hint = " If this is a local path, pass an existing folder path."
             raise ValueError(
-                f"Corpus '{corpus_name}' is not available for public download."
+                f"Corpus '{corpus_name}' is not available for public download.{hint}"
             ) from exc
 
         self.name = corpus_name
@@ -335,6 +344,15 @@ class DakodaCorpus:
     @staticmethod
     def _build_remote_url(name: str) -> str:
         return f"https://dakoda.org/data/repo/open/{name}/{name}_xmi.zip"
+
+    @staticmethod
+    def _looks_like_path_string(text: str) -> bool:
+        return (
+            "/" in text
+            or "\\" in text
+            or text.startswith(".")
+            or text.startswith("~")
+        )
 
     # =========================================================
     # Dokumente laden

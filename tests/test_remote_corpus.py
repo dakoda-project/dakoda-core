@@ -58,6 +58,15 @@ def test_local_corpus_invalid_path():
         DakodaCorpus(Path("does_not_exist"))
 
 
+def test_local_corpus_loading_from_string_path(local_corpus_dir):
+
+    corpus = DakodaCorpus(str(local_corpus_dir))
+
+    assert corpus.remote is False
+    assert corpus.name == "TEST_CORPUS"
+    assert len(corpus) == 2
+
+
 # =========================================================
 # REMOTE LOADING (ENUM)
 # =========================================================
@@ -155,6 +164,29 @@ def test_remote_uses_cache(monkeypatch, tmp_path):
     corpus = DakodaCorpus("BMAT_L2")
 
     assert len(corpus) == 2
+    assert called is False
+
+
+def test_remote_pathlike_string_error_has_hint(monkeypatch, tmp_path):
+
+    called = False
+
+    def fake_get(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise RuntimeError("Should not download")
+
+    monkeypatch.setattr("dakoda.corpus.requests.get", fake_get)
+
+    monkeypatch.setattr(
+        DakodaCorpus,
+        "CACHE_DIR",
+        tmp_path / ".dakoda" / "corpora",
+    )
+
+    with pytest.raises(ValueError, match="local path"):
+        DakodaCorpus("missing/folder")
+
     assert called is False
 
 
