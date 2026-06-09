@@ -17,11 +17,11 @@ def test_corpus():
 
 @pytest.fixture
 def test_cas(test_corpus):
-    return test_corpus[0].cas
+    return test_corpus["1023_0001416.xmi"].cas
 
 @pytest.fixture
-def cas_index():
-    return pl.read_csv(TEST_CORPUS_DIR / "cas_idx.csv")
+def cas_index(test_corpus):
+    return test_corpus._get_search_index("cas")
 
 @pytest.fixture
 def empty_corpus():

@@ -1,16 +1,29 @@
 [tool.poetry]
 name = "dakoda-core"
-version = "0.1.0"
-description = ""
+version = "0.2.0"
+description = "A Python library for DAKODA corpus management and querying."
+license = "Apache-2.0"
 authors = [
     "Marius Hamacher <marius.hamacher@outlook.de>",
     "Josef Ruppenhofer <josef.ruppenhofer@fernuni-hagen.de>",
     "Torsten Zesch <torsten.zesch@fernuni-hagen.de>",
 ]
 readme = "README.md"
+homepage = "https://github.com/dakoda-project/dakoda-core"
+repository = "https://github.com/dakoda-project/dakoda-core"
+documentation = "https://github.com/dakoda-project/dakoda-core#readme"
+keywords = ["dakoda", "corpus", "nlp", "uima", "linguistics"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Science/Research",
+    "Topic :: Text Processing :: Linguistic",
+]
 packages = [
     { include = "dakoda", from="src"}
 ]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/dakoda-project/dakoda-core/issues"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.14"

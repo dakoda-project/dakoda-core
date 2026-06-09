@@ -6,7 +6,7 @@ DAKODA is an interdisciplinary project with the overarching goal of advancing th
 
 ## Prerequisites
 
-- **Python 3.11+** (recommended via [pyenv](https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv))
+- **Python 3.9+** (3.11+ recommended via [pyenv](https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv))
 - **Poetry** for dependency management (see [installation](https://python-poetry.org/docs/#installing-with-the-official-installer) guide)
 
 ## Setup
@@ -70,3 +70,36 @@ poetry run pytest --cov=dakoda
 3. Make your changes
 4. Run tests: `poetry run pytest`
 5. Submit a pull request
+
+## Release (PyPI)
+
+Short release checklist:
+
+1. Update the version in `pyproject.toml`.
+2. Run tests:
+
+    ```bash
+    poetry run pytest
+    ```
+
+3. Build distribution artifacts:
+
+    ```bash
+    poetry build
+    ```
+
+4. Publish:
+
+    ```bash
+    export POETRY_PYPI_TOKEN_PYPI="pypi-XXXXXXXXXXXXXXXXXXXX"
+    poetry publish
+    ```
+
+Notes:
+
+- Use API tokens for authentication (`__token__` username).
+- Create a fresh build (`poetry build`) for every release.
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
