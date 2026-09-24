@@ -3,8 +3,9 @@ import itertools
 import random
 
 import pytest
+from conftest import TESTFILES_DIR
 
-from dakoda.corpus import DakodaDocument, CasIndexer, MetaDataIndexer
+from dakoda.corpus import DakodaCorpus, DakodaDocument, CasIndexer, MetaDataIndexer
 
 
 def test_load_corpus(test_corpus):
@@ -63,12 +64,15 @@ def test_subscript_access(test_corpus):
     assert all(isinstance(doc, DakodaDocument) for doc in docs)
 
 
-def test_random_doc(test_corpus, empty_corpus):
+def test_random_doc(test_corpus):
+    """Ensure that a random document can be retrieved from a non‑empty corpus."""
     doc = test_corpus.random_doc()
     assert len(doc.text) > 0
 
+def test_empty_corpus():
+    """Creating a corpus from an empty directory should raise ``ValueError``. """
     with pytest.raises(ValueError):
-        empty_corpus.random_doc()
+        DakodaCorpus(source=TESTFILES_DIR / "EmptyCorpus")
 
 
 def test_document(test_cas, test_corpus):

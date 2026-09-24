@@ -18,6 +18,12 @@ def load_cas_from_file(path, ts):
         return cassis.load_cas_from_xmi(f, typesystem=ts)
 
 
+def load_cas_from_stream(stream, ts):
+    """Load a CAS from an already-open binary stream, e.g. a zip archive member."""
+    with stream as f:
+        return cassis.load_cas_from_xmi(f, typesystem=ts)
+
+
 def get_cas_meta_json_string(cas: Cas):
     for meta in cas.select(T_META):
         if meta.get("key") == "structured_metadata":

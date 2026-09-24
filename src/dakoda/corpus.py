@@ -22,6 +22,7 @@ from dakoda.metadata import MetaData
 from dakoda.query import Predicate
 from dakoda.uima import (
     load_cas_from_file,
+    load_cas_from_stream,
     load_dakoda_typesystem,
     type_to_fieldname,
     view_to_name,
@@ -75,15 +76,21 @@ class DakodaDocument:
         """Get the CAS object for this document.
 
         If the CAS is not already loaded, loads it from the corresponding
-        XMI file using the corpus typesystem.
+        XMI file using the corpus typesystem. Reads directly from the
+        corpus archive if the corpus is stored zipped.
 
         Returns:
             The CAS object containing document annotations.
         """
         if self._cas is None:
-            cas = load_cas_from_file(
-                self.corpus.path / f"{self.id}.xmi", ts=self.corpus.ts
-            )
+            if self.corpus.is_archive:
+                cas = load_cas_from_stream(
+                    self.corpus._open_member(self.id), ts=self.corpus.ts
+                )
+            else:
+                cas = load_cas_from_file(
+                    self.corpus.path / f"{self.id}.xmi", ts=self.corpus.ts
+                )
             self._cas = cas
 
         return self._cas
@@ -99,11 +106,18 @@ class DakodaDocument:
             MetaData object containing document metadata.
         """
         if self._meta is None:
-            cached_file = self.corpus.path / f"{self.id}.json"
+            # Cached next to (or alongside, for archives) the corpus, never inside the archive itself.
+            cached_file = self.corpus.cache_dir / f"{self.id}.json"
             if cached_file.is_file():
                 self._meta = MetaData.from_json_file(cached_file)
             else:
-                self._meta = MetaData.from_cas(self.cas)
+                try:
+                    self._meta = MetaData.from_cas(self.cas)
+                except ValueError as exc:
+                    corpus_name = self.corpus.name if self.corpus else None
+                    raise ValueError(
+                        f"{exc} (document={self.id!r}, corpus={corpus_name!r})"
+                    ) from exc
                 with open(cached_file, "w") as f:
                     f.write(self._meta.to_json_string())
 
@@ -220,9 +234,12 @@ class DakodaCorpus:
     def __init__(
         self,
         source: DakodaPublicCorpusName | DakodaCorpusName | str | Path,
+        *,
+        keep_archived: bool = False,
     ):
 
         self.remote = False
+        self.is_archive = False
 
         # =====================================================
         # Index-Struktur
@@ -236,27 +253,52 @@ class DakodaCorpus:
         # Lokal über Path
         # =====================================================
         if isinstance(source, Path):
-            self.path = source
-            self.name = source.stem
-            self._init_from_filesystem(source)
+            self._init_from_local_path(source)
         elif isinstance(source, (DakodaPublicCorpusName, DakodaCorpusName)):
             corpus_name = source.value
             self.remote = True
-            self._init_from_remote(corpus_name)
+            self._init_from_remote(corpus_name, keep_archived=keep_archived)
         elif isinstance(source, str):
             candidate_path = Path(source).expanduser()
             if candidate_path.exists():
-                self.path = candidate_path
-                self.name = candidate_path.stem
-                self._init_from_filesystem(candidate_path)
+                self._init_from_local_path(candidate_path)
             else:
                 corpus_name = source.replace("_", "-") # allows users to pass corpus names with underscores instead of dashes
                 self.remote = True
-                self._init_from_remote(corpus_name, source)
+                self._init_from_remote(corpus_name, source, keep_archived=keep_archived)
         else:
             raise TypeError(
                 "DakodaCorpus requires DakodaCorpusName, str or Path."
             )
+
+    def _init_from_local_path(self, path: Path):
+        if path.is_file() and path.suffix == ".zip":
+            self._init_from_archive(path)
+            return
+
+        if path.is_dir():
+            archive_path = self._find_archive_in_dir(path)
+            if archive_path is not None:
+                self._init_from_archive(archive_path, cache_dir=path)
+                return
+
+        self._init_from_filesystem(path)
+
+    @staticmethod
+    def _find_archive_in_dir(path: Path) -> Path | None:
+        # A folder with already-extracted XMI files is treated as unzipped, even if a zip sits next to them.
+        if any(path.glob("*.xmi")):
+            return None
+
+        zip_paths = sorted(path.glob("*.zip"))
+        if len(zip_paths) == 1:
+            return zip_paths[0]
+        if len(zip_paths) > 1:
+            raise ValueError(
+                f"Multiple zip archives found in {path}, expected exactly one: "
+                f"{[p.name for p in zip_paths]}"
+            )
+        return None
 
     # =========================================================
     # Lokale Initialisierung
@@ -268,19 +310,68 @@ class DakodaCorpus:
 
         resolved_path = path.resolve()
 
-        print(f"[LOCAL LOAD] Loading corpus from: {resolved_path}")
-
         self.path = resolved_path
         self.name = resolved_path.stem
+        self.is_archive = False
+        self.cache_dir = resolved_path
 
+        # Gather all XMI document files in the directory
         self._document_paths = sorted(resolved_path.glob("*.xmi"))
+
+        # Report how many documents were found
+        doc_count = len(self._document_paths)
+        print(f"[LOCAL LOAD] Loading corpus from: {resolved_path} ({doc_count} document(s) found)")
+
+        # Ensure the corpus is not empty
+        if doc_count == 0:
+            raise ValueError(f"No XMI documents found in corpus directory: {resolved_path}")
 
         self._load_documents()
 
     # =========================================================
+    # Archiv-Initialisierung
+    # =========================================================
+    def _init_from_archive(self, path: Path, cache_dir: Path | None = None):
+
+        if not path.is_file():
+            raise FileNotFoundError(f"Corpus archive does not exist: {path}")
+
+        resolved_path = path.resolve()
+
+        self.path = resolved_path
+        self.name = resolved_path.stem
+        self.is_archive = True
+        # Metadata/index caches always live unzipped, independent of where the archive sits.
+        self.cache_dir = (
+            Path(cache_dir).resolve() if cache_dir is not None else self._get_cache_path(self.name)
+        )
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        self._zip = zipfile.ZipFile(resolved_path)
+        self._document_paths = sorted(
+            Path(n) for n in self._zip.namelist() if n.endswith(".xmi")
+        )
+
+        doc_count = len(self._document_paths)
+        print(f"[ARCHIVE LOAD] Loading corpus from archive: {resolved_path} ({doc_count} document(s) found)")
+
+        if doc_count == 0:
+            raise ValueError(f"No XMI documents found in corpus archive: {resolved_path}")
+
+        self._load_documents()
+
+    def _open_member(self, doc_id: str):
+        return self._zip.open(f"{doc_id}.xmi")
+
+    # =========================================================
     # Remote Initialisierung
     # =========================================================
-    def _init_from_remote(self, corpus_name: str, source_text: str | None = None):
+    def _init_from_remote(
+        self,
+        corpus_name: str,
+        source_text: str | None = None,
+        keep_archived: bool = False,
+    ):
 
         try:
             DakodaPublicCorpusName(corpus_name)
@@ -294,14 +385,20 @@ class DakodaCorpus:
 
         self.name = corpus_name
 
-        cache_path = self._get_cache_path(corpus_name)
+        cache_dir = self._get_cache_path(corpus_name)
+        archive_path = cache_dir / f"{corpus_name}_xmi.zip"
 
         # -----------------------------------------------------
         # Bereits lokal vorhanden
         # -----------------------------------------------------
-        if cache_path.exists():
+        if keep_archived and archive_path.is_file():
+            print(f"[CACHE LOAD] Using cached corpus archive: {corpus_name}")
+            self._init_from_archive(archive_path, cache_dir=cache_dir)
+            return
+
+        if not keep_archived and cache_dir.exists():
             print(f"[CACHE LOAD] Using cached corpus: {corpus_name}")
-            self._init_from_filesystem(cache_path)
+            self._init_from_filesystem(cache_dir)
             return
 
         # -----------------------------------------------------
@@ -327,12 +424,15 @@ class DakodaCorpus:
                 f"Corpus '{corpus_name}' could not be downloaded from remote repository"
             ) from e
 
-        cache_path.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
-        with zipfile.ZipFile(io.BytesIO(response.content), "r") as zf:
-            zf.extractall(cache_path)
-
-        self._init_from_filesystem(cache_path)
+        if keep_archived:
+            archive_path.write_bytes(response.content)
+            self._init_from_archive(archive_path, cache_dir=cache_dir)
+        else:
+            with zipfile.ZipFile(io.BytesIO(response.content), "r") as zf:
+                zf.extractall(cache_dir)
+            self._init_from_filesystem(cache_dir)
 
     # =========================================================
     # Cache Utilities
@@ -634,7 +734,7 @@ class IndexCache:
         self.corpus = corpus
         self.cache_name = cache_name
         if cache_dir is None:
-            cache_dir = self.corpus.path / ".index"
+            cache_dir = self.corpus.cache_dir / ".index"
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 

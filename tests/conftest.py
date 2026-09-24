@@ -24,11 +24,6 @@ def cas_index(test_corpus):
     return test_corpus._get_search_index("cas")
 
 @pytest.fixture
-def empty_corpus():
-    return DakodaCorpus(TESTFILES_DIR / "EmptyCorpus")
-
-
-@pytest.fixture
 def sample_index():
     """Create a synthetic index similar to the real data structure"""
     data = [
